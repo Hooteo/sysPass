@@ -116,16 +116,7 @@ final class Config
                     } else {
                         $configData = new ConfigData();
 
-                        // Allow provisioning the salt from the environment (eg. Docker secrets)
-                        // so it can be reproduced across deployments instead of being random
-                        // per container; falls back to a random one otherwise.
-                        $envPasswordSalt = getenv('SYSPASS_PASSWORD_SALT');
-
-                        $configData->setPasswordSalt(
-                            $envPasswordSalt !== false && $envPasswordSalt !== ''
-                                ? $envPasswordSalt
-                                : PasswordUtil::generateRandomBytes(30)
-                        );
+                        $this->applyEnvironmentOverrides($configData);
 
                         $this->saveConfig($configData, false);
 
@@ -147,6 +138,65 @@ final class Config
                     $e->getCode(),
                     $e);
             }
+        }
+    }
+
+    /**
+     * Provisions a brand new config from the environment (eg. Docker secrets)
+     * so a migrated deployment doesn't need a hand-edited config.xml.
+     *
+     * Only ever called when app/config has no config.xml yet, so this never
+     * touches an already-running instance's configuration.
+     */
+    private function applyEnvironmentOverrides(ConfigData $configData)
+    {
+        $passwordSalt = getenv('SYSPASS_PASSWORD_SALT');
+
+        $configData->setPasswordSalt(
+            $passwordSalt !== false && $passwordSalt !== ''
+                ? $passwordSalt
+                : PasswordUtil::generateRandomBytes(30)
+        );
+
+        $dbHost = getenv('SYSPASS_DB_HOST');
+
+        if ($dbHost === false || $dbHost === '') {
+            // No DB connection provided - fall through to the install
+            // wizard, same as if no env vars were set at all.
+            return;
+        }
+
+        $configData->setDbHost($dbHost);
+        $configData->setDbName((string)getenv('SYSPASS_DB_NAME'));
+        $configData->setDbUser((string)getenv('SYSPASS_DB_USER'));
+        $configData->setDbPass((string)getenv('SYSPASS_DB_PASS'));
+
+        $dbPort = getenv('SYSPASS_DB_PORT');
+
+        if ($dbPort !== false && $dbPort !== '') {
+            $configData->setDbPort((int)$dbPort);
+        }
+
+        // Providing DB connection details means "this is an already
+        // installed database", not "run the install wizard against it".
+        $configData->setInstalled(true);
+
+        // These must match what the OLD installation's config.xml last had,
+        // or sysPass will either re-show the install wizard against a
+        // non-empty database, or replay every upgrade script from scratch
+        // against a database that already has them applied - neither value
+        // can be derived from the database itself, they only ever lived in
+        // the old config.xml.
+        $dbVersion = getenv('SYSPASS_DB_VERSION');
+
+        if ($dbVersion !== false && $dbVersion !== '') {
+            $configData->setDatabaseVersion($dbVersion);
+        }
+
+        $appVersion = getenv('SYSPASS_APP_VERSION');
+
+        if ($appVersion !== false && $appVersion !== '') {
+            $configData->setAppVersion($appVersion);
         }
     }
 

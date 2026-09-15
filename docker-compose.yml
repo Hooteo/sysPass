@@ -15,12 +15,22 @@ services:
     environment:
       - USE_SSL=yes
       - SYSPASS_PASSWORD_SALT=${SYSPASS_PASSWORD_SALT}
+      - SYSPASS_DB_HOST=db
+      - SYSPASS_DB_PORT=3306
+      - SYSPASS_DB_NAME=${SYSPASS_DB_NAME}
+      - SYSPASS_DB_USER=${SYSPASS_DB_USER}
+      - SYSPASS_DB_PASS=${SYSPASS_DB_PASS}
+      - SYSPASS_DB_VERSION=${SYSPASS_DB_VERSION}
+      - SYSPASS_APP_VERSION=${SYSPASS_APP_VERSION}
   db:
     container_name: syspass-db
     restart: always
     image: mariadb:10.2
     environment:
-      - MYSQL_ROOT_PASSWORD=syspass
+      - MYSQL_ROOT_PASSWORD=${SYSPASS_DB_ROOT_PASS}
+      - MYSQL_DATABASE=${SYSPASS_DB_NAME}
+      - MYSQL_USER=${SYSPASS_DB_USER}
+      - MYSQL_PASSWORD=${SYSPASS_DB_PASS}
     ports:
       - "3306"
     volumes:
