@@ -1,10 +1,9 @@
-## sysPass - Systems Password Manager
+## sysPass fork - Systems Password Manager
 
-[![Build Status](https://travis-ci.org/nuxsmin/sysPass.svg?branch=master)](https://travis-ci.org/nuxsmin/sysPass)  [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/nuxsmin/sysPass/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/nuxsmin/sysPass/?branch=master) [![Backers on Open Collective](https://opencollective.com/sysPass/backers/badge.svg)](#backers) [![Sponsors on Open Collective](https://opencollective.com/sysPass/sponsors/badge.svg)](#sponsors)
-
-[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/nuxsmin/sysPass.svg)](http://isitmaintained.com/project/nuxsmin/sysPass "Average time to resolve an issue") [![Percentage of issues still open](http://isitmaintained.com/badge/open/nuxsmin/sysPass.svg)](http://isitmaintained.com/project/nuxsmin/sysPass "Percentage of issues still open")
-
-Join us in the Gitter chat room:  [![Join the chat at https://gitter.im/sysPass/Lobby](https://badges.gitter.im/sysPass/Lobby.svg)](https://gitter.im/sysPass/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) 
+Internal fork of the sysPass password manager, maintained for our own
+infrastructure. The original upstream project has not seen active
+maintenance in some time, so this fork carries our own fixes and features
+on top of it.
 
 ---
 
@@ -12,7 +11,7 @@ PHP web based Password Manager for business and personal use.
 
 - [x] AES-256 encryption in CTR mode
 - [x] RSA for sending passwords from forms
-- [x] Two factor authentication
+- [x] Two factor authentication (login) and per-account OTP/TOTP codes
 - [x] HTML5 and Ajax interface
 - [x] Users, groups and profiles management with up to 29 access levels
 - [x] MySQL, OpenLDAP and Active Directory authentication
@@ -21,51 +20,32 @@ PHP web based Password Manager for business and personal use.
 - [x] Multilanguage
 - [x] JSON-RPC API
 
-Installation instructions and documentation at Doc https://doc.syspass.org
+## Changes in this fork
 
-----
+- Fixed a proxy header bug in `lib/SP/Http/Request.php`.
+- Fixed a "copy password requires two clicks" clipboard bug.
+- Added per-account OTP/TOTP code support (view/copy a live 6-digit code
+  for an account, alongside its password).
+- Added Docker packaging (`Dockerfile`, `docker-compose.yml`) with the
+  image built and published automatically via GitHub Actions.
+- Added support for provisioning the signing/HMAC secret from an
+  environment variable (`SYSPASS_PASSWORD_SALT`) instead of only ever
+  generating a random one on first boot - see `.env.example`.
 
-This software is published under GNU GPLv3 license. For details about that, there is
-a copy on 'COPYING' file.
+## Running with Docker
 
-----
+```
+cp .env.example .env   # fill in SYSPASS_PASSWORD_SALT if you want a reproducible one
+docker compose up -d
+```
 
-https://syspass.org
+See `Dockerfile` and `docker/` for the image build and `docker-compose.yml`
+for the default service layout (app + MariaDB, `app/config` and
+`app/backup` persisted as named volumes).
 
-https://doc.syspass.org
+## License
 
-https://github.com/nuxsmin/sysPass
-
-https://hub.docker.com/r/nuxsmin/docker-syspass/
-
-## Contributors
-
-This project exists thanks to all the people who contribute. 
-<a href="https://github.com/nuxsmin/sysPass/graphs/contributors"><img src="https://opencollective.com/sysPass/contributors.svg?width=890&button=false" /></a>
-
-
-## Backers
-
-Thank you to all our backers! 🙏 [[Become a backer](https://opencollective.com/sysPass#backer)]
-
-<a href="https://opencollective.com/sysPass#backers" target="_blank"><img src="https://opencollective.com/sysPass/backers.svg?width=890"></a>
-
-
-## Sponsors
-
-Support this project by becoming a sponsor. Your logo will show up here with a link to your website. [[Become a sponsor](https://opencollective.com/sysPass#sponsor)]
-
-<a href="https://opencollective.com/sysPass/sponsor/0/website" target="_blank"><img src="https://opencollective.com/sysPass/sponsor/0/avatar.svg"></a>
-<a href="https://opencollective.com/sysPass/sponsor/1/website" target="_blank"><img src="https://opencollective.com/sysPass/sponsor/1/avatar.svg"></a>
-<a href="https://opencollective.com/sysPass/sponsor/2/website" target="_blank"><img src="https://opencollective.com/sysPass/sponsor/2/avatar.svg"></a>
-<a href="https://opencollective.com/sysPass/sponsor/3/website" target="_blank"><img src="https://opencollective.com/sysPass/sponsor/3/avatar.svg"></a>
-<a href="https://opencollective.com/sysPass/sponsor/4/website" target="_blank"><img src="https://opencollective.com/sysPass/sponsor/4/avatar.svg"></a>
-<a href="https://opencollective.com/sysPass/sponsor/5/website" target="_blank"><img src="https://opencollective.com/sysPass/sponsor/5/avatar.svg"></a>
-<a href="https://opencollective.com/sysPass/sponsor/6/website" target="_blank"><img src="https://opencollective.com/sysPass/sponsor/6/avatar.svg"></a>
-<a href="https://opencollective.com/sysPass/sponsor/7/website" target="_blank"><img src="https://opencollective.com/sysPass/sponsor/7/avatar.svg"></a>
-<a href="https://opencollective.com/sysPass/sponsor/8/website" target="_blank"><img src="https://opencollective.com/sysPass/sponsor/8/avatar.svg"></a>
-<a href="https://opencollective.com/sysPass/sponsor/9/website" target="_blank"><img src="https://opencollective.com/sysPass/sponsor/9/avatar.svg"></a>
-
----
-
-Though it would be preferable to ask or report issues through GitHub's website, you can reach me out by email (eg. CVEs, contribution, etc.): nuxsmin[a_t]syspass[d_o_t]org  
+This software is licensed under the GNU GPLv3. See the `COPYING` file for
+the full license text. This is a modified/derivative version of the
+original sysPass project; per the terms of the GPLv3, the original
+copyright and license notices in the source files are preserved.

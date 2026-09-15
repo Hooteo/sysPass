@@ -115,8 +115,16 @@ final class Config
                     } else {
                         $configData = new ConfigData();
 
-                        // Generate a random salt that is used to add more seed to some passwords
-                        $configData->setPasswordSalt(PasswordUtil::generateRandomBytes(30));
+                        // Allow provisioning the salt from the environment (eg. Docker secrets)
+                        // so it can be reproduced across deployments instead of being random
+                        // per container; falls back to a random one otherwise.
+                        $envPasswordSalt = getenv('SYSPASS_PASSWORD_SALT');
+
+                        $configData->setPasswordSalt(
+                            $envPasswordSalt !== false && $envPasswordSalt !== ''
+                                ? $envPasswordSalt
+                                : PasswordUtil::generateRandomBytes(30)
+                        );
 
                         $this->saveConfig($configData, false);
 
