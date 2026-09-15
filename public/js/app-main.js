@@ -128,19 +128,17 @@ sysPass.Main = function () {
         }
 
         $("body").on("click", ".clip-pass-button", function () {
-            const json = oPublic.actions.account.copyPass($(this)).done(function (json) {
+            oPublic.actions.account.copyPass($(this)).done(function (json) {
                 if (json.status !== 0) {
                     msg.out(json);
 
-                    return false;
+                    return;
                 }
 
                 sk.set(json.csrf);
-            });
 
-            if (json !== false) {
                 clipboard
-                    .copy(json.responseJSON.data.accpass)
+                    .copy(json.data.accpass)
                     .then(
                         function () {
                             msg.ok(oPublic.config.LANG[45]);
@@ -149,7 +147,32 @@ sysPass.Main = function () {
                             msg.error(oPublic.config.LANG[46]);
                         }
                     );
-            }
+            }).fail(function () {
+                msg.error(oPublic.config.LANG[46]);
+            });
+        }).on("click", ".clip-otp-button", function () {
+            oPublic.actions.account.copyPass($(this)).done(function (json) {
+                if (json.status !== 0) {
+                    msg.out(json);
+
+                    return;
+                }
+
+                sk.set(json.csrf);
+
+                clipboard
+                    .copy(json.data.code)
+                    .then(
+                        function () {
+                            msg.ok(oPublic.config.LANG[45]);
+                        },
+                        function (err) {
+                            msg.error(oPublic.config.LANG[46]);
+                        }
+                    );
+            }).fail(function () {
+                msg.error(oPublic.config.LANG[46]);
+            });
         }).on("click", ".dialog-clip-button", function () {
             const $target = $(this.dataset.clipboardTarget);
 

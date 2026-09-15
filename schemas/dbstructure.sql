@@ -404,7 +404,8 @@ VALUES (1, 'text', 'Text'),
        (7, 'url', 'URL'),
        (8, 'color', 'Color'),
        (9, 'wiki', 'Wiki'),
-       (10, 'textarea', 'Text Area');
+       (10, 'textarea', 'Text Area'),
+       (11, 'otp', 'OTP Code');
 DROP TABLE IF EXISTS `Notification`;
 /*!40101 SET @saved_cs_client = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;

@@ -50,6 +50,7 @@ use SP\Http\JsonResponse;
 use SP\Http\Uri;
 use SP\Modules\Web\Controllers\Helpers\Account\AccountHelper;
 use SP\Modules\Web\Controllers\Helpers\Account\AccountHistoryHelper;
+use SP\Modules\Web\Controllers\Helpers\Account\AccountOtpHelper;
 use SP\Modules\Web\Controllers\Helpers\Account\AccountPasswordHelper;
 use SP\Modules\Web\Controllers\Helpers\Account\AccountSearchHelper;
 use SP\Modules\Web\Controllers\Helpers\LayoutHelper;
@@ -769,6 +770,76 @@ final class AccountController extends ControllerBase implements CrudControllerIn
         $this->eventDispatcher->notifyEvent('copy.account.pass',
             new Event($this, EventMessage::factory()
                 ->addDescription(__u('Password copied'))
+                ->addDetail(__u('Account'), $account->getName()))
+        );
+
+        return $this->returnJsonResponseData($data);
+    }
+
+    /**
+     * View account's OTP code
+     *
+     * @param int $id Account's ID
+     *
+     * @return bool
+     * @throws Helpers\HelperException
+     * @throws DependencyException
+     * @throws NotFoundException
+     * @throws CryptoException
+     * @throws ConstraintException
+     * @throws QueryException
+     * @throws NoSuchItemException
+     * @throws ServiceException
+     * @throws SPException
+     */
+    public function viewOtpAction($id)
+    {
+        $this->checkSecurityToken($this->previousSk, $this->request);
+
+        $accountOtpHelper = $this->dic->get(AccountOtpHelper::class);
+
+        $account = $this->accountService->getPasswordForId($id);
+
+        $data = $accountOtpHelper->getOtpView($id, $account->getName());
+
+        $this->eventDispatcher->notifyEvent('show.account.otp',
+            new Event($this, EventMessage::factory()
+                ->addDescription(__u('OTP code viewed'))
+                ->addDetail(__u('Account'), $account->getName()))
+        );
+
+        return $this->returnJsonResponseData($data);
+    }
+
+    /**
+     * Copy account's OTP code
+     *
+     * @param int $id Account's ID
+     *
+     * @return bool
+     * @throws Helpers\HelperException
+     * @throws DependencyException
+     * @throws NotFoundException
+     * @throws CryptoException
+     * @throws ConstraintException
+     * @throws QueryException
+     * @throws NoSuchItemException
+     * @throws ServiceException
+     * @throws SPException
+     */
+    public function copyOtpAction($id)
+    {
+        $this->checkSecurityToken($this->previousSk, $this->request);
+
+        $accountOtpHelper = $this->dic->get(AccountOtpHelper::class);
+
+        $account = $this->accountService->getPasswordForId($id);
+
+        $data = $accountOtpHelper->getOtpCode($id);
+
+        $this->eventDispatcher->notifyEvent('copy.account.otp',
+            new Event($this, EventMessage::factory()
+                ->addDescription(__u('OTP code copied'))
                 ->addDetail(__u('Account'), $account->getName()))
         );
 

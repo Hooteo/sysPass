@@ -99,6 +99,16 @@ final class AccountActionsHelper extends HelperBase
             $actions[] = $this->getEditPassAction()->addData('item-id', $accountActionsDto->getAccountId());
         }
 
+        if ($accountAcl->isShowViewPass()) {
+            $actions[] = $this->getViewOtpAction()
+                ->addData('item-id', $accountActionsDto->getAccountId())
+                ->addData('parent-id', 0);
+
+            $actions[] = $this->getCopyOtpAction()
+                ->addData('item-id', $accountActionsDto->getAccountId())
+                ->addData('parent-id', 0);
+        }
+
         if ($accountAcl->isShowEdit()) {
             $actions[] = $this->getEditAction()->addData('item-id', $accountActionsDto->getAccountId());
         }
@@ -492,6 +502,48 @@ final class AccountActionsHelper extends HelperBase
         $action->addData('action-full', 0);
         $action->addData('action-sk', $this->sk);
         $action->addData('useclipboard', '1');
+        $action->addAttribute('type', 'button');
+
+        return $action;
+    }
+
+    /**
+     * @return DataGridAction
+     */
+    public function getViewOtpAction()
+    {
+        $action = new DataGridAction();
+        $action->setId('otp-view');
+        $action->setType(DataGridActionType::VIEW_ITEM);
+        $action->setName(__('View OTP Code'));
+        $action->setTitle(__('View OTP Code'));
+        $action->addClass('btn-action');
+        $action->setIcon($this->icons->getIconByName('lock_clock'));
+        $action->addData('action-route', 'account/viewOtp');
+        $action->addData('action-full', 1);
+        $action->addData('action-sk', $this->sk);
+        $action->addData('onclick', 'account/viewPass');
+        $action->addAttribute('type', 'button');
+
+        return $action;
+    }
+
+    /**
+     * @return DataGridAction
+     */
+    public function getCopyOtpAction()
+    {
+        $action = new DataGridAction();
+        $action->setId('otp-copy');
+        $action->setType(DataGridActionType::VIEW_ITEM);
+        $action->setName(__('Copy OTP Code to Clipboard'));
+        $action->setTitle(__('Copy OTP Code to Clipboard'));
+        $action->addClass('btn-action');
+        $action->addClass('clip-otp-button');
+        $action->setIcon($this->icons->getIconByName('content_copy'));
+        $action->addData('action-route', 'account/copyOtp');
+        $action->addData('action-full', 0);
+        $action->addData('action-sk', $this->sk);
         $action->addAttribute('type', 'button');
 
         return $action;

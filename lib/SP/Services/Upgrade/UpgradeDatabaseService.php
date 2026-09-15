@@ -58,7 +58,8 @@ final class UpgradeDatabaseService extends Service implements UpgradeInterface
         '300.18111801',
         '300.18111901',
         '310.19012201',
-        '310.19042701'
+        '310.19042701',
+        '320.26091501'
     ];
 
     /**

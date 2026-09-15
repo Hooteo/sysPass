@@ -48,7 +48,7 @@ foreach ($customFields as $index => $field):?>
             <?php if ($field->typeName === 'color' && $_getvar('isView')): ?>
                 <span class="round custom-input-color"
                       style="background-color: <?php echo $field->value; ?>;"></span>
-            <?php elseif ($field->typeName === 'password'): ?>
+            <?php elseif ($field->typeName === 'password' || $field->typeName === 'otp'): ?>
                 <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
                     <input id="<?php echo $field->formId; ?>"
                            name="customfield[<?php echo $field->definitionId; ?>]"

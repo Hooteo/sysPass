@@ -1,0 +1,14 @@
+.git
+.github
+.gitignore
+.travis.yml
+tests
+docker-compose.yml
+app/config/*
+app/backup/*
+app/cache/*
+app/temp/*
+!app/config/actions.xml
+!app/config/mime.xml
+!app/config/*.inc
+vendor
