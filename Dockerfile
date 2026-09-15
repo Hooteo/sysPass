@@ -3,7 +3,8 @@ FROM composer:2 AS composer
 FROM php:7.4-apache
 
 RUN apt-get update; \
-    for i in 1 2 3 4 5; do \
+    ok=0; \
+    for i in 1 2 3 4 5 6 7 8 9 10; do \
         apt-get install -y --no-install-recommends \
             libpng-dev \
             libfreetype6-dev \
@@ -16,9 +17,11 @@ RUN apt-get update; \
             gettext \
             unzip \
             git \
-        && break || { echo "apt-get install failed (attempt $i), retrying..."; sleep 10; apt-get update; }; \
-    done \
-    && docker-php-ext-configure ldap \
+        && { ok=1; break; } \
+        || { echo "apt-get install failed (attempt $i/10), retrying in 30s..."; sleep 30; apt-get update; }; \
+    done; \
+    [ "$ok" = "1" ] || { echo "apt-get install still failing after 10 attempts, giving up"; exit 1; }; \
+    docker-php-ext-configure ldap \
     && docker-php-ext-configure gd --with-freetype \
     && docker-php-ext-install -j"$(nproc)" \
         pdo_mysql \
