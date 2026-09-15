@@ -2,18 +2,22 @@ FROM composer:2 AS composer
 
 FROM php:7.4-apache
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpng-dev \
-        libfreetype6-dev \
-        libzip-dev \
-        libxml2-dev \
-        libonig-dev \
-        libldap2-dev \
-        libcurl4-openssl-dev \
-        libicu-dev \
-        gettext \
-        unzip \
-        git \
+RUN apt-get update; \
+    for i in 1 2 3 4 5; do \
+        apt-get install -y --no-install-recommends \
+            libpng-dev \
+            libfreetype6-dev \
+            libzip-dev \
+            libxml2-dev \
+            libonig-dev \
+            libldap2-dev \
+            libcurl4-openssl-dev \
+            libicu-dev \
+            gettext \
+            unzip \
+            git \
+        && break || { echo "apt-get install failed (attempt $i), retrying..."; sleep 10; apt-get update; }; \
+    done \
     && docker-php-ext-configure ldap \
     && docker-php-ext-configure gd --with-freetype \
     && docker-php-ext-install -j"$(nproc)" \
