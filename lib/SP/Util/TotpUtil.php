@@ -1,12 +1,11 @@
 <?php
 /**
- * sysPass
+ * sysPass fork
  *
- * @author    nuxsmin
- * @link      https://syspass.org
- * @copyright 2012-2019, Rubén Domínguez nuxsmin@$syspass.org
+ * @author    Infonet Solutions
+ * @copyright 2026, Infonet Solutions
  *
- * This file is part of sysPass.
+ * New file added in this fork, part of a modified version of sysPass.
  *
  * sysPass is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

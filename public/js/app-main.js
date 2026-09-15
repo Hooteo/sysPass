@@ -4,6 +4,7 @@
  * @author nuxsmin
  * @link https://syspass.org
  * @copyright 2012-2018, Rubén Domínguez nuxsmin@$syspass.org
+ * @copyright 2026, Infonet Solutions - Modified for this fork
  *
  * This file is part of sysPass.
  *
