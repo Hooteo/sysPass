@@ -2,9 +2,18 @@ FROM composer:2 AS composer
 
 FROM php:7.4-apache
 
-RUN apt-get update; \
+# bullseye-security has been retired from the live deb.debian.org CDN (PHP
+# 7.4 / Debian bullseye are long past their support window) - pin all three
+# suites to a snapshot.debian.org timestamp instead, using the fallback
+# lines the base image itself already ships commented-out in sources.list.
+RUN sed -i \
+        -e "s|^deb http://deb.debian.org/debian bullseye main|deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20221114T000000Z bullseye main|" \
+        -e "s|^deb http://deb.debian.org/debian-security bullseye-security main|deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20221114T000000Z bullseye-security main|" \
+        -e "s|^deb http://deb.debian.org/debian bullseye-updates main|deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20221114T000000Z bullseye-updates main|" \
+        /etc/apt/sources.list \
+    && apt-get update; \
     ok=0; \
-    for i in 1 2 3 4 5 6 7 8 9 10; do \
+    for i in 1 2 3; do \
         apt-get install -y --no-install-recommends \
             libpng-dev \
             libfreetype6-dev \
@@ -18,9 +27,9 @@ RUN apt-get update; \
             unzip \
             git \
         && { ok=1; break; } \
-        || { echo "apt-get install failed (attempt $i/10), retrying in 30s..."; sleep 30; apt-get update; }; \
+        || { echo "apt-get install failed (attempt $i/3), retrying in 10s..."; sleep 10; apt-get update; }; \
     done; \
-    [ "$ok" = "1" ] || { echo "apt-get install still failing after 10 attempts, giving up"; exit 1; }; \
+    [ "$ok" = "1" ] || { echo "apt-get install still failing after 3 attempts, giving up"; exit 1; }; \
     docker-php-ext-configure ldap \
     && docker-php-ext-configure gd --with-freetype \
     && docker-php-ext-install -j"$(nproc)" \
@@ -33,7 +42,6 @@ RUN apt-get update; \
         ldap \
         curl \
     && a2enmod rewrite ssl \
-    && echo "Listen 443" >> /etc/apache2/ports.conf \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
@@ -46,7 +54,8 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist \
     && mkdir -p app/config app/backup app/cache app/temp \
-    && chown -R www-data:www-data ${APP_ROOT}
+    && chown -R www-data:www-data ${APP_ROOT} \
+    && chmod 750 app/config
 
 COPY docker/000-default.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/default-ssl.conf /etc/apache2/sites-available/default-ssl.conf

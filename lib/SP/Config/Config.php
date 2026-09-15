@@ -177,20 +177,18 @@ final class Config
             $configData->setDbPort((int)$dbPort);
         }
 
-        // Providing DB connection details means "this is an already
-        // installed database", not "run the install wizard against it".
-        $configData->setInstalled(true);
-
-        // These must match what the OLD installation's config.xml last had,
-        // or sysPass will either re-show the install wizard against a
-        // non-empty database, or replay every upgrade script from scratch
-        // against a database that already has them applied - neither value
-        // can be derived from the database itself, they only ever lived in
-        // the old config.xml.
+        // SYSPASS_DB_VERSION only makes sense for a migrated, already
+        // installed database (it must match what the OLD instance's
+        // config.xml last had - it can't be derived from the database
+        // itself). Its presence is what tells us to skip the install
+        // wizard: DB_HOST alone just pre-fills the wizard's connection
+        // fields for a genuinely empty database, it doesn't imply the
+        // schema is already there.
         $dbVersion = getenv('SYSPASS_DB_VERSION');
 
         if ($dbVersion !== false && $dbVersion !== '') {
             $configData->setDatabaseVersion($dbVersion);
+            $configData->setInstalled(true);
         }
 
         $appVersion = getenv('SYSPASS_APP_VERSION');
