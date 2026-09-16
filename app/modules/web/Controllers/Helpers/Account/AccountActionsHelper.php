@@ -519,7 +519,7 @@ final class AccountActionsHelper extends HelperBase
         $action->setName(__('View OTP Code'));
         $action->setTitle(__('View OTP Code'));
         $action->addClass('btn-action');
-        $action->setIcon($this->icons->getIconByName('lock_clock'));
+        $action->setIcon($this->icons->getIconByName('vpn_key'));
         $action->setRuntimeFilter(AccountSearchItem::class, 'isShowViewPass');
         $action->addData('action-route', 'account/viewOtp');
         $action->addData('action-full', 1);
