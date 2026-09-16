@@ -378,6 +378,7 @@ sysPass.Triggers = function (log) {
             }
 
             initializeTags($container);
+            initOtpCountdown($container);
 
             sysPassApp.triggers.updateFormHash($container);
         },
@@ -474,6 +475,58 @@ sysPass.Triggers = function (log) {
             sysPassApp.theme.passwordDetect($form);
             selectDetect($form);
         }
+    };
+
+    // Cuenta atrás y auto-refresco del código OTP en el popup "View OTP"
+    const initOtpCountdown = function ($container) {
+        log.info("initOtpCountdown");
+
+        const $counter = $container.find(".otp-countdown");
+
+        if ($counter.length === 0) {
+            return;
+        }
+
+        const $seconds = $counter.find("#otp-seconds");
+        const $code = $container.find("#otp-code");
+        const accountId = $counter.data("account-id");
+        let remaining = parseInt($seconds.text(), 10) || parseInt($counter.data("period"), 10) || 30;
+
+        const timer = setInterval(function () {
+            if ($seconds.closest("body").length === 0) {
+                clearInterval(timer);
+
+                return;
+            }
+
+            remaining -= 1;
+
+            if (remaining > 0) {
+                $seconds.text(remaining);
+
+                return;
+            }
+
+            const opts = sysPassApp.requests.getRequestOpts();
+            opts.method = "get";
+            opts.useLoading = false;
+            opts.url = sysPassApp.util.getUrl(
+                sysPassApp.actions.ajaxUrl.entrypoint,
+                {
+                    r: ["account/refreshOtp", accountId],
+                    sk: sysPassApp.sk.get(),
+                    isAjax: 1
+                }
+            );
+
+            sysPassApp.requests.getActionCall(opts, function (json) {
+                if (json.status === 0) {
+                    $code.text(json.data.code);
+                    remaining = json.data.secondsRemaining;
+                    $seconds.text(remaining);
+                }
+            });
+        }, 1000);
     };
 
     const initializeTags = function ($container) {

@@ -24,5 +24,9 @@ use SP\Core\UI\ThemeIcons;
         </tr>
         </tbody>
     </table>
-    <p class="center"><?php echo __('Refreshes in'); ?> <?php echo $_getvar('secondsRemaining'); ?>s</p>
+    <p class="center otp-countdown"
+       data-account-id="<?php echo $_getvar('accountId'); ?>"
+       data-period="<?php echo $_getvar('period'); ?>">
+        <?php echo __('Refreshes in'); ?> <span id="otp-seconds"><?php echo $_getvar('secondsRemaining'); ?></span>s
+    </p>
 </div>

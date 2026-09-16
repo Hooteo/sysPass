@@ -98,6 +98,7 @@ final class AccountOtpHelper extends HelperBase
 
         $this->view->assign('header', __('Account OTP Code'));
         $this->view->assign('accountName', $accountName);
+        $this->view->assign('accountId', $accountId);
         $this->view->assign('code', $otp['code']);
         $this->view->assign('secondsRemaining', $otp['secondsRemaining']);
         $this->view->assign('period', TotpUtil::PERIOD);

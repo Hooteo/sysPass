@@ -848,6 +848,33 @@ final class AccountController extends ControllerBase implements CrudControllerIn
     }
 
     /**
+     * Silently returns the current OTP code, for the "View OTP" popup to
+     * refresh itself every period without spamming the event log with a
+     * new "viewed"/"copied" entry every 30 seconds
+     *
+     * @param int $id Account's ID
+     *
+     * @return bool
+     * @throws Helpers\HelperException
+     * @throws DependencyException
+     * @throws NotFoundException
+     * @throws CryptoException
+     * @throws ConstraintException
+     * @throws QueryException
+     * @throws NoSuchItemException
+     * @throws ServiceException
+     * @throws SPException
+     */
+    public function refreshOtpAction($id)
+    {
+        $this->checkSecurityToken($this->previousSk, $this->request);
+
+        $accountOtpHelper = $this->dic->get(AccountOtpHelper::class);
+
+        return $this->returnJsonResponseData($accountOtpHelper->getOtpCode($id));
+    }
+
+    /**
      * Copy account's password
      *
      * @param int $id Account's ID
