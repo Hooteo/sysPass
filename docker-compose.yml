@@ -15,8 +15,8 @@ services:
     environment:
       - USE_SSL=yes
       - SYSPASS_PASSWORD_SALT=${SYSPASS_PASSWORD_SALT}
-      - SYSPASS_DB_HOST=db
-      - SYSPASS_DB_PORT=3306
+      - SYSPASS_DB_HOST=${SYSPASS_DB_HOST:-db}
+      - SYSPASS_DB_PORT=${SYSPASS_DB_PORT:-3306}
       - SYSPASS_DB_NAME=${SYSPASS_DB_NAME}
       - SYSPASS_DB_USER=${SYSPASS_DB_USER}
       - SYSPASS_DB_PASS=${SYSPASS_DB_PASS}
@@ -40,3 +40,23 @@ volumes:
   syspass-config: {}
   syspass-backup: {}
   syspass-db: {}
+
+# If MariaDB needs GRANTs scoped to a specific IP instead of '%' (some
+# setups don't reliably match containers against '%'), give the app
+# container a static IP on its own network instead of the default bridge
+# one, then GRANT ... TO 'user'@'<that IP>' instead of 'user'@'%':
+#
+# networks:
+#   syspass_net:
+#     ipam:
+#       config:
+#         - subnet: 172.28.0.0/16
+#
+# services:
+#   app:
+#     networks:
+#       syspass_net:
+#         ipv4_address: 172.28.0.10
+#   db:
+#     networks:
+#       syspass_net: {}
