@@ -520,6 +520,7 @@ final class AccountActionsHelper extends HelperBase
         $action->setTitle(__('View OTP Code'));
         $action->addClass('btn-action');
         $action->setIcon($this->icons->getIconByName('lock_clock'));
+        $action->setRuntimeFilter(AccountSearchItem::class, 'isShowViewPass');
         $action->addData('action-route', 'account/viewOtp');
         $action->addData('action-full', 1);
         $action->addData('action-sk', $this->sk);
@@ -542,6 +543,7 @@ final class AccountActionsHelper extends HelperBase
         $action->addClass('btn-action');
         $action->addClass('clip-otp-button');
         $action->setIcon($this->icons->getIconByName('content_copy'));
+        $action->setRuntimeFilter(AccountSearchItem::class, 'isShowCopyPass');
         $action->addData('action-route', 'account/copyOtp');
         $action->addData('action-full', 0);
         $action->addData('action-sk', $this->sk);

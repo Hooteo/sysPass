@@ -219,6 +219,8 @@ final class AccountSearchHelper extends HelperBase
         $dataGrid->addDataAction($actions->getViewAction());
         $dataGrid->addDataAction($actions->getViewPassAction());
         $dataGrid->addDataAction($actions->getCopyPassAction());
+        $dataGrid->addDataAction($actions->getViewOtpAction());
+        $dataGrid->addDataAction($actions->getCopyOtpAction());
         $dataGrid->addDataAction($actions->getEditAction(), !$showOptionalActions);
         $dataGrid->addDataAction($actions->getCopyAction(), !$showOptionalActions);
         $dataGrid->addDataAction($actions->getDeleteAction(), !$showOptionalActions);
