@@ -37,6 +37,9 @@ PHP web based Password Manager for business and personal use.
   boot - `docker compose pull && docker compose up -d` is enough after a
   new image, no more clicking through the upgrade confirmation screen by
   hand. See "Automatic DB schema upgrades" below.
+- Added a dark theme ("Material Dark"), now the default for new installs
+  - see "Dark theme" below for how to switch an already-installed
+  instance over to it.
 
 ## Running with Docker
 
@@ -289,6 +292,50 @@ The same can be done directly in the database if needed:
 ```sql
 DELETE FROM UserMfa WHERE userId = <id>;
 ```
+
+## Dark theme
+
+A second theme, "Material Dark", lives alongside the stock "Material
+Blue" theme (`app/modules/web/themes/material-dark`). It reuses Material
+Blue's page templates and JS unchanged - only the colors differ - so any
+future template change to Material Blue applies to both automatically.
+
+It's now the **default theme for new installs** (`ConfigData`'s
+`siteTheme` default). This does **not** retroactively change an
+already-installed instance - sysPass persists the theme choice in
+`app/config/config.xml` the moment it's first installed, and that value
+takes precedence over the code default forever after. To switch an
+existing instance over:
+
+- **Instance-wide** (affects every user without a personal theme
+  preference already set - on an instance that's only ever had one theme
+  to choose from, that's normally everyone): log in as an admin →
+  Configuration → General → "Theme" → Material Dark → save.
+- **Per user**: from your own profile (avatar menu → account settings) →
+  Preferences → "Theme" → Material Dark → save. A personal preference
+  here always wins over the instance-wide default.
+
+### If you touch this theme
+
+`css/` and `js/` are **real copies** of Material Blue's vendor files, not
+symlinks - sysPass's own CSS/JS bundler (`lib/SP/Html/Minify.php`)
+resolves each requested file with `realpath()` and requires it to stay
+under the requesting theme's own directory
+(`SP\Http\Request::getSecureAppPath()`); a symlinked file resolves
+outside `material-dark/`, fails that check, and is served back empty
+without an error. If Material Blue's vendor CSS/JS ever gets updated,
+copy the same update into `material-dark/css`/`material-dark/js` by
+hand - `views/` and `inc/` don't have this problem (plain PHP includes,
+not served through that bundler) and stay symlinked on purpose.
+
+The theme's own colors live in one file,
+`css/dark-theme.min.css` - loaded last, so plain CSS cascade order is
+enough for it to win over everything before it. It must keep the
+`.min.css` suffix even though it isn't actually minified: the bundler
+only implements minification for JS, and treats any CSS file *not*
+already named `*.min.css` as needing it - silently dropping its content
+instead of erroring. This is a pre-existing quirk in stock sysPass, not
+something specific to this theme.
 
 ## License
 

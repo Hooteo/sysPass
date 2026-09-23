@@ -1,0 +1,489 @@
+/*
+ * Material Dark - dark palette on top of Material Blue's own CSS.
+ *
+ * Loaded last (see index.php), after Material Design Lite's vendor CSS
+ * and sysPass's own styles.min.css, so plain cascade order is enough to
+ * win in almost every rule below - !important is used only where MDL's
+ * component base styles are more specific than a single class selector.
+ *
+ * Palette: Material dark theme surface levels (bg #121212, surfaces
+ * #1e1e1e / #262626 / #2c2c2c, text at 87%/60%/38% white opacity),
+ * keeping the same indigo accent (#536DFE) and status colors (red/teal/
+ * amber/blue) Material Blue already uses, just with translucent dark
+ * backgrounds instead of pastel light ones behind them.
+ */
+
+:root {
+  --md-bg: #121212;
+  --md-surface: #1e1e1e;
+  --md-surface-alt: #262626;
+  --md-surface-raised: #2c2c2c;
+  --md-border: rgba(255, 255, 255, .12);
+  --md-border-strong: rgba(255, 255, 255, .24);
+  --md-text: rgba(255, 255, 255, .87);
+  --md-text-secondary: rgba(255, 255, 255, .60);
+  --md-text-disabled: rgba(255, 255, 255, .38);
+  --md-accent: #536dfe;
+}
+
+/* ==========================================================================
+   Base page
+   ========================================================================== */
+
+html, body {
+  background-color: var(--md-bg);
+  color: var(--md-text);
+}
+
+#wrap {
+  background-color: var(--md-bg);
+}
+
+#wrap-loading {
+  background-color: rgba(30, 30, 30, .9);
+  color: var(--md-text);
+}
+
+#wrap-loading.overlay-full {
+  background-color: rgba(18, 18, 18, .75);
+}
+
+a {
+  color: #8c9eff;
+}
+
+hr {
+  border-color: var(--md-border);
+}
+
+::selection {
+  background: rgba(83, 109, 254, .4);
+}
+
+/* Scrollbars (WebKit/Blink + Firefox) */
+* {
+  scrollbar-color: #4a4a4a var(--md-surface);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--md-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #4a4a4a;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #5c5c5c;
+}
+
+/* ==========================================================================
+   Material Design Lite - structural components
+   ========================================================================== */
+
+.mdl-layout__content {
+  background-color: var(--md-bg);
+  color: var(--md-text);
+}
+
+.mdl-layout__drawer {
+  background-color: var(--md-surface);
+  color: var(--md-text);
+  border-right-color: var(--md-border);
+}
+
+.mdl-layout__drawer .mdl-layout-title {
+  color: var(--md-text);
+}
+
+.mdl-layout__drawer .mdl-navigation__link {
+  color: var(--md-text-secondary);
+}
+
+.mdl-layout__drawer .mdl-navigation__link:hover {
+  background-color: var(--md-surface-alt);
+  color: var(--md-text);
+}
+
+.mdl-menu__item--full-bleed-divider {
+  border-bottom-color: var(--md-border);
+}
+
+.mdl-card {
+  background-color: var(--md-surface);
+  color: var(--md-text);
+}
+
+.mdl-card__supporting-text {
+  color: var(--md-text-secondary);
+}
+
+.mdl-shadow--2dp, .mdl-shadow--3dp, .mdl-shadow--4dp,
+.mdl-shadow--6dp, .mdl-shadow--8dp, .mdl-shadow--16dp {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .6), 0 1px 2px rgba(0, 0, 0, .7);
+}
+
+/* Menus / dropdowns */
+.mdl-menu__container {
+  background-color: transparent;
+}
+
+.mdl-menu {
+  background-color: var(--md-surface-raised) !important;
+  color: var(--md-text);
+}
+
+.mdl-menu__item {
+  color: var(--md-text);
+}
+
+.mdl-menu__item[disabled] {
+  color: var(--md-text-disabled);
+}
+
+.mdl-menu__item:hover {
+  background-color: var(--md-surface-alt) !important;
+}
+
+.mdl-list {
+  background-color: var(--md-surface);
+}
+
+.mdl-list__item {
+  color: var(--md-text);
+}
+
+.mdl-list__item-secondary-action,
+.mdl-list__item-sub-title {
+  color: var(--md-text-secondary);
+}
+
+/* Text fields */
+.mdl-textfield__input {
+  color: var(--md-text);
+  border-bottom-color: var(--md-border-strong);
+}
+
+.mdl-textfield__label {
+  color: var(--md-text-secondary);
+}
+
+.mdl-textfield__label:after {
+  background-color: var(--md-accent);
+}
+
+.mdl-textfield--floating-label.is-focused .mdl-textfield__label,
+.mdl-textfield--floating-label.is-dirty .mdl-textfield__label {
+  color: var(--md-text-secondary);
+}
+
+.mdl-textfield.is-disabled .mdl-textfield__input,
+.mdl-textfield.is-disabled .mdl-textfield__label {
+  color: var(--md-text-disabled);
+  border-bottom-color: var(--md-border);
+}
+
+.mdl-textfield__input::placeholder {
+  color: var(--md-text-disabled);
+}
+
+/* Buttons */
+.mdl-button {
+  color: var(--md-text-secondary);
+}
+
+.mdl-button--raised {
+  background-color: var(--md-surface-alt);
+  color: var(--md-text);
+}
+
+.mdl-button--raised:hover,
+.mdl-button--raised:active {
+  background-color: #333333;
+}
+
+.mdl-button--icon {
+  color: var(--md-text-secondary);
+}
+
+.mdl-button[disabled] {
+  color: var(--md-text-disabled) !important;
+}
+
+.mdl-button--fab.mdl-button--colored {
+  color: #fff;
+}
+
+/* Dialogs */
+.mdl-dialog {
+  background-color: var(--md-surface-raised);
+  color: var(--md-text);
+}
+
+.dialog-container {
+  background-color: var(--md-surface-raised) !important;
+  color: var(--md-text);
+}
+
+/* Checkboxes / radios / switches */
+.mdl-checkbox__box-outline,
+.mdl-radio__outer-circle {
+  border-color: var(--md-text-secondary);
+}
+
+.mdl-checkbox__label,
+.mdl-radio__label,
+.mdl-switch__label {
+  color: var(--md-text);
+}
+
+.mdl-switch__track {
+  background: rgba(255, 255, 255, .3);
+}
+
+.mdl-switch__thumb {
+  background: #bdbdbd;
+}
+
+/* Tabs */
+.mdl-tabs__tab-bar {
+  border-bottom-color: var(--md-border);
+}
+
+.mdl-tabs__tab {
+  color: var(--md-text-secondary);
+}
+
+.mdl-tabs__tab.is-active {
+  color: var(--md-text);
+}
+
+/* Tables (native MDL data table, if used anywhere) */
+.mdl-data-table {
+  background-color: var(--md-surface);
+  color: var(--md-text);
+}
+
+.mdl-data-table td, .mdl-data-table th {
+  border-bottom-color: var(--md-border);
+}
+
+/* ==========================================================================
+   sysPass chrome
+   ========================================================================== */
+
+#content, #box-popup {
+  color: var(--md-text);
+}
+
+#content .lowres-title,
+.notification-description,
+.event-description, .event-details {
+  color: var(--md-text-secondary);
+}
+
+#title {
+  color: var(--md-text);
+}
+
+.data-container,
+fieldset.data,
+.tblConfig {
+  background-color: var(--md-surface);
+  border-color: var(--md-border);
+}
+
+.tblConfig td.rowHeader,
+.data-header {
+  background-color: var(--md-surface-alt);
+}
+
+.row_even > td {
+  background-color: var(--md-surface);
+}
+
+.row_odd > td {
+  background-color: var(--md-surface-alt);
+}
+
+.data-table th,
+.data-table thead th,
+.data-rows,
+#resEventLog .data thead {
+  background-color: var(--md-surface-alt);
+  color: var(--md-text);
+  border-bottom-color: var(--md-border);
+}
+
+.data-table tbody td,
+.data-rows li,
+#resEventLog td {
+  border-bottom-color: var(--md-border);
+  color: var(--md-text-secondary);
+}
+
+.data-table tbody tr:hover td,
+.data-rows li:hover {
+  background-color: var(--md-surface-alt);
+}
+
+#searchbox {
+  background-color: var(--md-surface);
+  border-color: var(--md-border);
+}
+
+.search-filters, .search-filters-tags {
+  border-color: var(--md-border);
+}
+
+.btn-clear {
+  color: var(--md-text-secondary);
+}
+
+#box-popup {
+  background-color: var(--md-surface-raised);
+}
+
+#box-popup .list-wrap li:hover {
+  background-color: var(--md-surface-alt);
+}
+
+.popup-data {
+  color: var(--md-text-secondary);
+}
+
+footer {
+  background-color: #1a1a1a;
+  color: var(--md-text-secondary);
+}
+
+footer a {
+  color: var(--md-text-secondary);
+}
+
+#status .status-info {
+  color: var(--md-text-secondary);
+}
+
+/* Status badges: translucent dark backgrounds instead of pastel ones,
+   keeping the same accent foreground colors sysPass already uses */
+.notice-red, .status-red {
+  background-color: rgba(239, 83, 80, .16) !important;
+}
+
+.notice-teal, .status-teal {
+  background-color: rgba(38, 166, 154, .16) !important;
+}
+
+.notice-amber, .status-amber {
+  background-color: rgba(255, 202, 40, .16) !important;
+}
+
+.notice-blue, .status-blue {
+  background-color: rgba(33, 150, 243, .16) !important;
+}
+
+/* ==========================================================================
+   Login / public (no-header) pages
+   ========================================================================== */
+
+body.login, body.logout, body.userpassreset {
+  background-color: #1a1a1a;
+}
+
+body.login footer, body.logout footer, body.userpassreset footer {
+  background-color: #1a1a1a;
+}
+
+#box-pub-noheader .box-header {
+  color: var(--md-text);
+}
+
+#box-pub-noheader .box-form {
+  background-color: var(--md-surface);
+  color: var(--md-text);
+}
+
+#box-pub-noheader .box-form fieldset#box-data legend {
+  color: var(--md-text-secondary);
+}
+
+#box-login #box-actions a {
+  color: var(--md-text-secondary);
+}
+
+#demo-info {
+  color: var(--md-text-secondary);
+  border-color: var(--md-border);
+}
+
+/* ==========================================================================
+   Third-party widgets
+   ========================================================================== */
+
+/* selectize (tag inputs) */
+.selectize-control.form-control .selectize-input {
+  background-color: var(--md-surface) !important;
+  color: var(--md-text) !important;
+  border-color: var(--md-border-strong) !important;
+}
+
+.selectize-control .selectize-input input {
+  color: var(--md-text) !important;
+}
+
+.selectize-dropdown {
+  background-color: var(--md-surface-raised) !important;
+  color: var(--md-text) !important;
+  border-color: var(--md-border-strong) !important;
+}
+
+.selectize-dropdown .option {
+  color: var(--md-text) !important;
+}
+
+.selectize-dropdown .active {
+  background-color: var(--md-surface-alt) !important;
+}
+
+.selectize-dropdown-header {
+  background-color: var(--md-surface-raised) !important;
+  border-bottom-color: var(--md-border) !important;
+}
+
+/* toastr notifications */
+.toast {
+  opacity: .95;
+}
+
+/* bootstrap-material-datetimepicker */
+.dtp > .dtp-content {
+  background-color: var(--md-surface-raised) !important;
+  color: var(--md-text) !important;
+}
+
+.dtp .dtp-date-view header.dtp-header {
+  background-color: var(--md-accent) !important;
+}
+
+.dtp table.dtp-picker-days tr > td > a {
+  color: var(--md-text) !important;
+}
+
+.dtp table.dtp-picker-days tr > td.dtp-select-day > a.selected {
+  background-color: var(--md-accent) !important;
+}
+
+.dtp .dtp-actual-meridien li a.selected {
+  color: var(--md-accent) !important;
+}
+
+.dtp-buttons {
+  background-color: var(--md-surface-raised) !important;
+}
