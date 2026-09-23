@@ -282,6 +282,24 @@ current password to confirm and enable it - the password confirmation is
 required by the encryption scheme above, not
 just a safety check.
 
+### "Remember this browser"
+
+Entering a correct code once trusts that browser for 7 days - a signed,
+HttpOnly cookie (`SYSPASS_MFA_TRUST`), sliding (using the browser again
+within those 7 days pushes the expiry back out, so a browser in regular
+use effectively never re-prompts). Only the 2FA step is skipped; your
+username and password are still checked on every login as normal.
+
+Disabling and re-enabling 2FA - including an admin reset after a lost
+device - immediately invalidates every previously-trusted browser for
+that user, even ones whose 7 days haven't elapsed yet: the cookie is
+tied to that specific enrollment, not just to the user. A plain password
+change does not affect it.
+
+To stop trusting a specific browser before its 7 days are up, clear that
+browser's cookies for this site (there's no server-side "forget this
+device" list to manage).
+
 ### Losing access
 
 If a user loses their authenticator device, an admin resets their 2FA from

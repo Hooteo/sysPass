@@ -121,4 +121,36 @@ abstract class Cookie
 
         return setcookie($this->cookieName, $data, 0, Bootstrap::$WEBROOT);
     }
+
+    /**
+     * Like setCookie(), but persistent (survives browser restarts) up to
+     * the given expiry, and with Secure/HttpOnly/SameSite set - for
+     * cookies that need to outlive the browser session, unlike the
+     * plain session cookie setCookie() creates.
+     *
+     * @param string $data
+     * @param int    $expire Unix timestamp
+     *
+     * @return bool
+     */
+    protected function setCookieWithExpire($data, $expire)
+    {
+        if (APP_MODULE === 'tests') {
+            return true;
+        }
+
+        if (headers_sent()) {
+            logger('Headers already sent', 'ERROR');
+
+            return false;
+        }
+
+        return setcookie($this->cookieName, $data, [
+            'expires' => $expire,
+            'path' => Bootstrap::$WEBROOT,
+            'secure' => $this->request->isHttps(),
+            'httponly' => true,
+            'samesite' => 'Strict',
+        ]);
+    }
 }

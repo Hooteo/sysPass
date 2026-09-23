@@ -32,6 +32,7 @@ use Exception;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use SP\Config\ConfigData;
+use SP\Core\Crypt\MfaTrustCookie;
 use SP\Core\Events\Event;
 use SP\Core\Events\EventMessage;
 use SP\Core\Exceptions\ConstraintException;
@@ -265,6 +266,15 @@ final class LoginService extends Service
             return;
         }
 
+        $enrollmentMarker = $this->userMfaService->getEnrollmentDate($userId);
+
+        if ($enrollmentMarker !== null
+            && MfaTrustCookie::factory($this->request)
+                ->isTrusted($userId, $enrollmentMarker, $this->configData->getPasswordSalt())
+        ) {
+            return;
+        }
+
         if ($this->trackService->checkTracking($this->mfaTrackRequest)) {
             $this->addMfaTracking();
 
@@ -303,6 +313,11 @@ final class LoginService extends Service
                 null,
                 self::STATUS_NEEDS_2FA
             );
+        }
+
+        if ($enrollmentMarker !== null) {
+            MfaTrustCookie::factory($this->request)
+                ->trust($userId, $enrollmentMarker, $this->configData->getPasswordSalt());
         }
     }
 

@@ -69,6 +69,28 @@ final class UserMfaService extends Service
     }
 
     /**
+     * Timestamp this user's current MFA secret was created/last
+     * re-enrolled - changes on disable()+enable() (including an admin
+     * reset), but NOT on rekeyOnPasswordChange() (same enrollment, just
+     * re-encrypted). Used to invalidate "remember this browser" cookies
+     * from a previous enrollment - see MfaTrustCookie.
+     *
+     * @return int|null
+     * @throws ConstraintException
+     * @throws QueryException
+     */
+    public function getEnrollmentDate(int $userId): ?int
+    {
+        $result = $this->userMfaRepository->getByUserId($userId);
+
+        if ($result->getNumRows() !== 1) {
+            return null;
+        }
+
+        return (int)$result->getData()->dateAdd;
+    }
+
+    /**
      * Encrypts and stores a new (or replacement) MFA secret for a user
      *
      * @throws ConstraintException

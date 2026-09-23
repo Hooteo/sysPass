@@ -49,7 +49,7 @@ final class UserMfaRepository extends Repository
     public function getByUserId(int $userId)
     {
         $queryData = new QueryData();
-        $queryData->setQuery('SELECT userId, secret, `key` FROM UserMfa WHERE userId = ? LIMIT 1');
+        $queryData->setQuery('SELECT userId, secret, `key`, dateAdd FROM UserMfa WHERE userId = ? LIMIT 1');
         $queryData->addParam($userId);
 
         return $this->db->doSelect($queryData);
