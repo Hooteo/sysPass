@@ -51,6 +51,10 @@ for the default service layout (app + MariaDB, `app/config` and
 
 ## Migrating from an existing sysPass installation
 
+> For a longer, more hand-holding walkthrough of this same process (in
+> Italian, written from real migration mistakes made along the way -
+> quoting exact errors and their fixes) see [`MIGRATION.md`](MIGRATION.md).
+
 The one value that must survive a migration is `passwordSalt` - it's the
 signing key sysPass uses for public/deep links, CSRF tokens and session
 security. Get it wrong and every public link generated before the
