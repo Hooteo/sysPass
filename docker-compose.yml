@@ -8,14 +8,23 @@ services:
       - "80"
       - "443"
     links:
-      - db
+      # Must match the database service's name below (syspass-db) - this
+      # is what makes Docker's internal DNS resolve that hostname to the
+      # database container from inside this one.
+      - syspass-db
     volumes:
       - syspass-config:/var/www/html/sysPass/app/config
       - syspass-backup:/var/www/html/sysPass/app/backup
     environment:
       - USE_SSL=yes
       - SYSPASS_PASSWORD_SALT=${SYSPASS_PASSWORD_SALT}
-      - SYSPASS_DB_HOST=${SYSPASS_DB_HOST:-db}
+      # The hostname sysPass connects to for the database. Must be the
+      # NAME OF THE SERVICE BELOW (syspass-db), not its container_name -
+      # those are two different things that happen to also be set to the
+      # same value here on purpose, specifically to avoid the "which name
+      # do I use" confusion: whichever one you see (in this file, in
+      # `docker ps`, or in Portainer), it's the same string either way.
+      - SYSPASS_DB_HOST=${SYSPASS_DB_HOST:-syspass-db}
       - SYSPASS_DB_PORT=${SYSPASS_DB_PORT:-3306}
       - SYSPASS_DB_NAME=${SYSPASS_DB_NAME}
       - SYSPASS_DB_USER=${SYSPASS_DB_USER}
@@ -24,7 +33,11 @@ services:
       - SYSPASS_APP_VERSION=${SYSPASS_APP_VERSION}
       - SYSPASS_AUTO_MIGRATE=${SYSPASS_AUTO_MIGRATE:-yes}
       - SYSPASS_APPLICATION_URL=${SYSPASS_APPLICATION_URL}
-  db:
+  syspass-db:
+    # Same value as the service name above on purpose - see the
+    # SYSPASS_DB_HOST comment. Renaming just one of the two is exactly
+    # what causes "unable to connect to db" after everything looks like
+    # it started fine.
     container_name: syspass-db
     restart: always
     image: mariadb:10.2
@@ -36,6 +49,11 @@ services:
     ports:
       - "3306"
     volumes:
+      # This volume's own name is a separate thing from the service/
+      # container name above (Docker keeps volume names and
+      # container/service names in different namespaces) - it's just
+      # where the data lives on disk. They happen to read the same here,
+      # which is fine, not a conflict.
       - syspass-db:/var/lib/mysql
 
 volumes:
@@ -59,6 +77,6 @@ volumes:
 #     networks:
 #       syspass_net:
 #         ipv4_address: 172.28.0.10
-#   db:
+#   syspass-db:
 #     networks:
 #       syspass_net: {}

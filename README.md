@@ -146,7 +146,7 @@ untouched. Skip everything below.
 **0. Back up the old instance first, always.**
 
 ```bash
-docker exec syspass-db mysqldump -u<old-db-root-user> -p'<old-db-root-pass>' --all-databases > syspass-backup-$(date +%F).sql
+docker exec <old-db-container> mysqldump -u<old-db-root-user> -p'<old-db-root-pass>' --all-databases > syspass-backup-$(date +%F).sql
 docker cp syspass-app:/var/www/html/sysPass/app/config/config.xml ./config.xml.old
 ```
 
@@ -179,7 +179,7 @@ Fill in, from step 1's output:
 **3. Start only the database, restore the dump:**
 
 ```bash
-docker compose up -d db
+docker compose up -d syspass-db
 # wait a few seconds for MariaDB to finish initializing before importing
 docker exec -i syspass-db mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' < syspass-backup-YYYY-MM-DD.sql
 ```

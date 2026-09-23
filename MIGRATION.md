@@ -91,7 +91,7 @@ Compila, usando **esattamente** i valori letti al Passo 1:
 
 ```
 SYSPASS_PASSWORD_SALT=<passwordSalt del vecchio config.xml, verbatim>
-SYSPASS_DB_HOST=db
+SYSPASS_DB_HOST=syspass-db
 SYSPASS_DB_PORT=3306
 SYSPASS_DB_ROOT_PASS=<una password NUOVA a tua scelta, per il volume MariaDB nuovo>
 SYSPASS_DB_NAME=<dbName del vecchio config.xml>
@@ -113,7 +113,7 @@ calcolare a mano fino a che punto applicare gli aggiornamenti.
 **Avvia solo il database, non ancora l'app:**
 
 ```bash
-docker compose up -d db
+docker compose up -d syspass-db
 ```
 
 Aspetta qualche secondo che MariaDB finisca di inizializzarsi, poi
