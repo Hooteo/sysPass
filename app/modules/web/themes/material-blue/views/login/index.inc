@@ -63,6 +63,17 @@ use SP\Mvc\View\Template;
                     </div>
                 </div>
 
+                <div id="s2fa" class="extra-hidden form-control">
+                    <i class="material-icons">lock_outline</i>
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                        <input id="mfacode" name="mfacode" type="text"
+                               class="mdl-textfield__input mdl-color-text--indigo-400"
+                               maxlength="6" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+                        <label class="mdl-textfield__label"
+                               for="mfacode"><?php echo __('Authentication Code'); ?></label>
+                    </div>
+                </div>
+
                 <?php if ($_getvar('from') && $_getvar('from_hash')): ?>
                     <input type="hidden" name="from"
                            value="<?php echo $_getvar('from'); ?>"/>

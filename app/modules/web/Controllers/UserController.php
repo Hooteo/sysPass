@@ -48,6 +48,7 @@ use SP\Mvc\View\Components\SelectItemAdapter;
 use SP\Services\Auth\AuthException;
 use SP\Services\Mail\MailService;
 use SP\Services\ServiceException;
+use SP\Services\User\UserMfaService;
 use SP\Services\User\UserService;
 use SP\Services\UserGroup\UserGroupService;
 use SP\Services\UserPassRecover\UserPassRecoverService;
@@ -310,6 +311,43 @@ final class UserController extends ControllerBase implements CrudControllerInter
 
                 return $this->returnJsonResponse(JsonResponse::JSON_SUCCESS, __u('User deleted'));
             }
+        } catch (Exception $e) {
+            processException($e);
+
+            $this->eventDispatcher->notifyEvent('exception', new Event($e));
+
+            return $this->returnJsonResponseException($e);
+        }
+    }
+
+    /**
+     * Admin-triggered reset of a user's login 2FA (eg. they lost their
+     * authenticator device) - same ACL as editing the user, since an admin
+     * who can edit a user's password can already fully take over their
+     * account anyway.
+     *
+     * @param $id
+     *
+     * @return bool
+     */
+    public function deleteMfaAction($id)
+    {
+        try {
+            $this->checkSecurityToken($this->previousSk, $this->request);
+
+            if (!$this->acl->checkUserAccess(Acl::USER_EDIT)) {
+                return $this->returnJsonResponse(JsonResponse::JSON_ERROR, __u('You don\'t have permission to do this operation'));
+            }
+
+            $this->dic->get(UserMfaService::class)->disable((int)$id);
+
+            $this->eventDispatcher->notifyEvent('edit.user.mfa',
+                new Event($this, EventMessage::factory()
+                    ->addDescription(__u('Two-factor authentication reset'))
+                    ->addDetail(__u('User'), $id))
+            );
+
+            return $this->returnJsonResponse(JsonResponse::JSON_SUCCESS, __u('Two-factor authentication reset'));
         } catch (Exception $e) {
             processException($e);
 

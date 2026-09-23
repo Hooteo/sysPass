@@ -31,6 +31,8 @@ PHP web based Password Manager for business and personal use.
 - Added support for provisioning the signing/HMAC secret from an
   environment variable (`SYSPASS_PASSWORD_SALT`) instead of only ever
   generating a random one on first boot - see `.env.example`.
+- Added optional two-factor (TOTP) login for sysPass itself, separate from
+  the per-account OTP feature above - see "Two-factor login" below.
 
 ## Running with Docker
 
@@ -144,6 +146,69 @@ docker compose up -d app
   issue, see step 3) or repeated `Context not initialized` notices
   (harmless and self-resolving - happens once while sysPass migrates the
   `config.xml` format itself, tied to a stale `<configVersion>`).
+
+## Two-factor login (TOTP)
+
+Separate from the per-account OTP field described above: this is a second
+factor for **logging into sysPass itself**, with an external authenticator
+app (Google Authenticator, Authy, etc.). Opt-in per user, nobody is forced
+into it.
+
+### How it's encrypted, and why
+
+Every other secret in sysPass (account passwords, the per-account OTP
+field, custom fields) is encrypted with a key derived from the **shared
+instance-wide master password** - the one password that unlocks the whole
+vault for every user. That's fine for those, because the vault's trust
+boundary already assumes "whoever has the master password can read
+everything in the vault."
+
+A login second factor is supposed to be an *independent* factor, though -
+if it were encrypted the same way, anyone who ever obtained the shared
+master password could derive everyone's 2FA codes too, which defeats the
+point. So this feature's secret is encrypted instead with a key derived
+from **that specific user's own login password**
+(`UserPassService::makeKeyForUser()`, the same derivation already used to
+protect that user's copy of the master password, `mPass`/`mKey`). Knowing
+the shared master password alone is not enough to derive another user's
+2FA secret - you'd also need to know that user's personal login password.
+
+### What that means when a password changes
+
+- **The user changes their own password** (the normal "your password
+  expired, enter your old one" flow at login): transparent. sysPass
+  already re-encrypts that user's `mPass`/`mKey` at that exact moment
+  (it has both the old and new password available then) - this fork
+  re-encrypts the 2FA secret alongside it, in the same step. The
+  authenticator app keeps generating valid codes, nothing to reconfigure.
+- **An admin resets a user's password** (the admin doesn't know the old
+  one, so there's nothing to re-key from): the user's existing 2FA secret
+  becomes permanently undecryptable. This is a direct consequence of the
+  isolation above, not a bug - the admin needs to also reset that user's
+  2FA (see below), and the user re-enrolls with a fresh code.
+
+### Enabling it
+
+From your own profile (avatar menu → account settings), a "Two-Factor
+Authentication" tab shows a freshly generated secret to add manually to
+your authenticator app (no QR code - same "paste the key" approach as the
+per-account OTP field, one less dependency). Enter the 6-digit code it
+produces plus your current password to confirm and enable it - the
+password confirmation is required by the encryption scheme above, not
+just a safety check.
+
+### Losing access
+
+If a user loses their authenticator device, an admin resets their 2FA:
+
+```sql
+DELETE FROM UserMfa WHERE userId = <id>;
+```
+
+(A dedicated button for this in the admin user-management screen is a
+natural follow-up - not included yet, since it touches a large existing
+form template that wasn't part of this change.) The user then re-enrolls
+from their profile with a new secret.
 
 ## License
 

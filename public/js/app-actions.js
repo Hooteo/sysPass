@@ -578,7 +578,7 @@ sysPass.Actions = function (log) {
     /**
      * Objeto con las acciones principales
      *
-     * @type {{logout: main.logout, login: main.login, install: main.install, twofa: main.twofa}}
+     * @type {{logout: main.logout, login: main.login, install: main.install}}
      */
     const main = {
         logout: function () {
@@ -621,6 +621,21 @@ sysPass.Actions = function (log) {
 
                         $("#oldpass").prop("disabled", false).val("");
                         $("#soldpass").show();
+                        break;
+                    case 8:
+                        sysPassApp.msg.out(json);
+
+                        // Unlike case 2/5, user/pass are already verified
+                        // correct at this point - don't wipe them, only the
+                        // (possibly wrong, on a retry) 2FA code field.
+                        $("#mfacode").prop("disabled", false).val("");
+
+                        if ($extra.length > 0) {
+                            $extra.hide();
+                        }
+
+                        $("#s2fa").show();
+                        $("#mfacode").focus();
                         break;
                     default:
                         sysPassApp.msg.out(json);

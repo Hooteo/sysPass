@@ -37,6 +37,8 @@ use SP\Mvc\View\Components\DataTab;
 use SP\Mvc\View\Components\SelectItemAdapter;
 use SP\Mvc\View\Template;
 use SP\Services\Auth\AuthException;
+use SP\Services\User\UserMfaService;
+use SP\Util\TotpUtil;
 
 /**
  * Class UserSettingsManagerController
@@ -49,6 +51,10 @@ final class UserSettingsManagerController extends ControllerBase implements Exte
      * @var TabsHelper
      */
     protected $tabsHelper;
+    /**
+     * @var UserMfaService
+     */
+    protected $userMfaService;
 
     /**
      * @throws DependencyException
@@ -70,6 +76,7 @@ final class UserSettingsManagerController extends ControllerBase implements Exte
         $this->tabsHelper = $this->dic->get(TabsHelper::class);
 
         $this->tabsHelper->addTab($this->getUserPreferences());
+        $this->tabsHelper->addTab($this->getUserMfa());
 
         $this->eventDispatcher->notifyEvent('show.userSettings', new Event($this));
 
@@ -96,6 +103,26 @@ final class UserSettingsManagerController extends ControllerBase implements Exte
         $template->assign('route', 'userSettingsGeneral/save');
 
         return new DataTab(__('Preferences'), $template);
+    }
+
+    /**
+     * @return DataTab
+     * @throws DependencyException
+     * @throws NotFoundException
+     */
+    private function getUserMfa()
+    {
+        $template = clone $this->view;
+        $template->setBase('usersettings');
+        $template->addTemplate('mfa');
+
+        $userId = $this->session->getUserData()->getId();
+        $enabled = $this->userMfaService->isEnabled($userId);
+
+        $template->assign('enabled', $enabled);
+        $template->assign('secret', $enabled ? '' : TotpUtil::generateSecret());
+
+        return new DataTab(__('Two-Factor Authentication'), $template);
     }
 
     /**
@@ -139,5 +166,7 @@ final class UserSettingsManagerController extends ControllerBase implements Exte
     protected function initialize()
     {
         $this->checkLoggedIn();
+
+        $this->userMfaService = $this->dic->get(UserMfaService::class);
     }
 }

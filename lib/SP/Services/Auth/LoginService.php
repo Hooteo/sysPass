@@ -56,6 +56,7 @@ use SP\Services\Crypt\TemporaryMasterPassService;
 use SP\Services\Service;
 use SP\Services\Track\TrackService;
 use SP\Services\User\UserLoginRequest;
+use SP\Services\User\UserMfaService;
 use SP\Services\User\UserPassService;
 use SP\Services\User\UserService;
 use SP\Services\UserPassRecover\UserPassRecoverService;
@@ -78,6 +79,7 @@ final class LoginService extends Service
     const STATUS_NEED_OLD_PASS = 5;
     const STATUS_MAX_ATTEMPTS_EXCEEDED = 6;
     const STATUS_PASS_RESET = 7;
+    const STATUS_NEEDS_2FA = 8;
     const STATUS_PASS = 0;
     const STATUS_NONE = 100;
 
@@ -110,6 +112,10 @@ final class LoginService extends Service
      */
     private $trackRequest;
     /**
+     * @var TrackRequest
+     */
+    private $mfaTrackRequest;
+    /**
      * @var string
      */
     private $from;
@@ -117,6 +123,10 @@ final class LoginService extends Service
      * @var Request
      */
     private $request;
+    /**
+     * @var UserMfaService
+     */
+    private $userMfaService;
 
     /**
      * Ejecutar las acciones de login
@@ -178,6 +188,7 @@ final class LoginService extends Service
         }
 
         $this->loadMasterPass();
+        $this->checkMfa();
         $this->setUserSession();
         $this->loadUserPreferences();
         $this->cleanUserData();
@@ -209,6 +220,88 @@ final class LoginService extends Service
                 AuthException::ERROR,
                 null,
                 Service::STATUS_INTERNAL_ERROR
+            );
+        }
+    }
+
+    /**
+     * Same as addTracking() but for the (separate) MFA code attempt bucket
+     *
+     * @throws AuthException
+     */
+    private function addMfaTracking()
+    {
+        try {
+            $this->trackService->add($this->mfaTrackRequest);
+        } catch (Exception $e) {
+            throw new AuthException(
+                __u('Internal error'),
+                AuthException::ERROR,
+                null,
+                Service::STATUS_INTERNAL_ERROR
+            );
+        }
+    }
+
+    /**
+     * Comprobar el código de doble factor de autenticación, si el usuario lo
+     * tiene activado. Se ejecuta después de loadMasterPass() (la password de
+     * login ya está verificada) y antes de setUserSession() (no se concede
+     * sesión hasta que el código sea correcto).
+     *
+     * @throws AuthException
+     * @throws ContainerExceptionInterface
+     * @throws NotFoundExceptionInterface
+     * @throws ConstraintException
+     * @throws QueryException
+     * @throws CryptoException
+     */
+    private function checkMfa()
+    {
+        $userLoginResponse = $this->userLoginData->getUserLoginResponse();
+        $userId = $userLoginResponse->getId();
+
+        if (!$this->userMfaService->isEnabled($userId)) {
+            return;
+        }
+
+        if ($this->trackService->checkTracking($this->mfaTrackRequest)) {
+            $this->addMfaTracking();
+
+            throw new AuthException(
+                __u('Attempts exceeded'),
+                AuthException::INFO,
+                null,
+                self::STATUS_MAX_ATTEMPTS_EXCEEDED
+            );
+        }
+
+        $code = $this->request->analyzeString('mfacode');
+
+        if (empty($code)) {
+            throw new AuthException(
+                __u('Two-factor authentication code needed'),
+                AuthException::INFO,
+                null,
+                self::STATUS_NEEDS_2FA
+            );
+        }
+
+        $verified = $this->userMfaService->verifyCode(
+            $userId,
+            $userLoginResponse->getLogin(),
+            $this->userLoginData->getLoginPass(),
+            $code
+        );
+
+        if ($verified === false) {
+            $this->addMfaTracking();
+
+            throw new AuthException(
+                __u('Wrong two-factor authentication code'),
+                AuthException::INFO,
+                null,
+                self::STATUS_NEEDS_2FA
             );
         }
     }
@@ -345,6 +438,17 @@ final class LoginService extends Service
                     );
                 }
 
+                // The user's login password has changed since their MFA secret
+                // (if any) was last encrypted with the old one - transparently
+                // re-key it with the new password now, while both are known.
+                // No-ops if the user has no MFA secret configured.
+                $this->userMfaService->rekeyOnPasswordChange(
+                    $this->userLoginData->getUserLoginResponse()->getId(),
+                    $this->userLoginData->getUserLoginResponse()->getLogin(),
+                    $oldPass,
+                    $this->userLoginData->getLoginPass()
+                );
+
                 $this->eventDispatcher->notifyEvent(
                     'login.masterPass',
                     new Event($this, EventMessage::factory()
@@ -469,9 +573,11 @@ final class LoginService extends Service
         $this->language = $this->dic->get(Language::class);
         $this->trackService = $this->dic->get(TrackService::class);
         $this->request = $this->dic->get(Request::class);
+        $this->userMfaService = $this->dic->get(UserMfaService::class);
 
         $this->userLoginData = new UserLoginData();
         $this->trackRequest = $this->trackService->getTrackRequest(__CLASS__);
+        $this->mfaTrackRequest = $this->trackService->getTrackRequest(__CLASS__ . '::mfa');
     }
 
     /**

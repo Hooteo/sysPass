@@ -39,6 +39,26 @@ final class TotpUtil
     const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
     /**
+     * Generates a random base32 secret suitable for a new TOTP enrollment
+     * (32 characters = 160 bits, matching what most authenticator apps and
+     * services issue)
+     *
+     * @param int $length
+     *
+     * @return string
+     */
+    public static function generateSecret(int $length = 32): string
+    {
+        $secret = '';
+
+        for ($i = 0; $i < $length; $i++) {
+            $secret .= self::BASE32_ALPHABET[random_int(0, strlen(self::BASE32_ALPHABET) - 1)];
+        }
+
+        return $secret;
+    }
+
+    /**
      * Decode a RFC 4648 base32 string (the format used by authenticator apps)
      *
      * @param string $secret
