@@ -602,6 +602,12 @@
         <route>user/editPass</route>
     </action>
     <action multiple="1">
+        <id>708</id>
+        <name>USER_EDIT_MFA</name>
+        <text>Reset Two-Factor Authentication</text>
+        <route>user/deleteMfa</route>
+    </action>
+    <action multiple="1">
         <id>702</id>
         <name>USER_SEARCH</name>
         <text>Search for User</text>

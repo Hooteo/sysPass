@@ -102,6 +102,7 @@ interface ActionsInterface
     const USER_EDIT = 705;
     const USER_DELETE = 706;
     const USER_EDIT_PASS = 707;
+    const USER_EDIT_MFA = 708;
     const GROUP = 801;
     const GROUP_SEARCH = 802;
     const GROUP_VIEW = 803;

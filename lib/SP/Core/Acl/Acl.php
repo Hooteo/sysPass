@@ -238,6 +238,7 @@ final class Acl implements ActionsInterface
             case self::USER_CREATE:
             case self::USER_EDIT:
             case self::USER_DELETE:
+            case self::USER_EDIT_MFA:
             case self::TRACK:
             case self::TRACK_SEARCH:
             case self::TRACK_CLEAR:

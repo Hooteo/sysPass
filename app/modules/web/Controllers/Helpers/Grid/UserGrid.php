@@ -68,6 +68,7 @@ final class UserGrid extends GridBase
         $grid->addDataAction($this->getViewAction());
         $grid->addDataAction($this->getEditAction());
         $grid->addDataAction($this->getEditPassAction());
+        $grid->addDataAction($this->getEditMfaAction());
         $grid->addDataAction($this->getDeleteAction());
         $grid->addDataAction(
             $this->getDeleteAction()
@@ -235,6 +236,23 @@ final class UserGrid extends GridBase
         $gridAction->setOnClickFunction('appMgmt/show');
         $gridAction->setFilterRowSource('isLdap');
         $gridAction->addData('action-route', Acl::getActionRoute(ActionsInterface::USER_EDIT_PASS));
+
+        return $gridAction;
+    }
+
+    /**
+     * @return DataGridAction
+     */
+    private function getEditMfaAction()
+    {
+        $gridAction = new DataGridAction();
+        $gridAction->setId(ActionsInterface::USER_EDIT_MFA);
+        $gridAction->setType(DataGridActionType::DELETE_ITEM);
+        $gridAction->setName(__('Reset Two-Factor Authentication'));
+        $gridAction->setTitle(__('Reset Two-Factor Authentication'));
+        $gridAction->setIcon($this->icons->getIconByName('vpn_key'));
+        $gridAction->setOnClickFunction('appMgmt/delete');
+        $gridAction->addData('action-route', Acl::getActionRoute(ActionsInterface::USER_EDIT_MFA));
 
         return $gridAction;
     }

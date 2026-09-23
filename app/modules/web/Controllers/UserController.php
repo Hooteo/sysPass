@@ -335,7 +335,7 @@ final class UserController extends ControllerBase implements CrudControllerInter
         try {
             $this->checkSecurityToken($this->previousSk, $this->request);
 
-            if (!$this->acl->checkUserAccess(Acl::USER_EDIT)) {
+            if (!$this->acl->checkUserAccess(Acl::USER_EDIT_MFA)) {
                 return $this->returnJsonResponse(JsonResponse::JSON_ERROR, __u('You don\'t have permission to do this operation'));
             }
 
