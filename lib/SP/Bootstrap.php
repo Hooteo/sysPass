@@ -38,8 +38,11 @@ use SP\Config\ConfigUtil;
 use SP\Core\Exceptions\ConfigException;
 use SP\Core\Exceptions\InitializationException;
 use SP\Core\Exceptions\SessionTimeout;
+use SP\Core\Exceptions\SPException;
 use SP\Core\Language;
 use SP\Core\PhpExtensionChecker;
+use SP\Http\Json;
+use SP\Http\JsonResponse;
 use SP\Http\Request;
 use SP\Modules\Api\Init as InitApi;
 use SP\Modules\Web\Init as InitWeb;
@@ -251,6 +254,32 @@ final class Bootstrap
                     processException($e);
 
                     /** @var Response $response */
+                    // Most controller actions (eg. AccountController::copyPassAction)
+                    // don't catch their own exceptions - expected, routine failures
+                    // like a stale CSRF token or "no OTP configured" end up here too,
+                    // not just unexpected crashes. An AJAX caller expects the usual
+                    // {status, description, csrf} JSON body (it's what msg.out() and
+                    // the .done()/.fail() handlers are written against), not a bare
+                    // 503 with a plain-text body, which every AJAX call in the app
+                    // treats as a hard network/HTTP error.
+                    if ((int)$request->param('isAjax') === 1) {
+                        try {
+                            $jsonResponse = new JsonResponse();
+                            $jsonResponse->setStatus(JsonResponse::JSON_ERROR);
+                            $jsonResponse->setDescription($e->getMessage());
+
+                            if ($e instanceof SPException && $e->getHint() !== null) {
+                                $jsonResponse->setMessages([$e->getHint()]);
+                            }
+
+                            $response->headers()->set('Content-type', 'application/json; charset=utf-8');
+
+                            return $response->body(Json::getJson($jsonResponse));
+                        } catch (\Exception $jsonException) {
+                            processException($jsonException);
+                        }
+                    }
+
                     if ($response->status()->getCode() !== 404) {
                         $response->code(503);
                     }
