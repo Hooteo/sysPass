@@ -183,6 +183,47 @@ not-yet-installed instance goes through the install wizard instead, there
 is nothing to upgrade). Set `SYSPASS_AUTO_MIGRATE=no` in `.env` to disable
 it and go back to confirming upgrades by hand in the browser.
 
+## Upgrading an existing instance to get OTP/MFA
+
+If you're already running this fork on an older image that predates the
+per-account OTP field and/or the login 2FA feature (anything before DB
+schema `320.26091501`), getting them is just the normal update - there is
+no separate migration step, no data conversion, and nothing that touches
+existing accounts or passwords:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+That's it. On boot, [auto-migrate](#automatic-db-schema-upgrades) detects
+the instance is behind and applies the schema changes for both features
+in order:
+
+- `320.26091501` / `320.26091601` - add the `OTP` custom field
+  (`CustomFieldType` id 11) and wire it up as an available, not-required
+  field on every account (module 1). Existing accounts are unaffected
+  until someone actually fills that field in on one.
+- `320.26092301` - create the `UserMfa` table used by login 2FA. Empty
+  until a user opts in from their own profile - nobody is forced into it,
+  and no existing session or login is affected.
+
+Check `docker compose logs app` for the `Auto-migrate: ...` lines to
+confirm it ran (see the section above) - you should see either upgrade
+steps being applied on the first boot after the pull, or (if you already
+went through a previous fork release that included one of the two
+upgrades above) just the remaining one(s).
+
+If you're coming from **unmodified upstream sysPass** rather than an
+older build of this fork, do that migration first (see "Migrating from an
+existing sysPass installation" above) - once that instance is running on
+this fork's image, the OTP/MFA schema upgrade above happens automatically
+on that same first boot, no extra step needed.
+
+To start actually using what just got added: the `OTP` field now shows up
+when creating/editing any account, and each user can turn on login 2FA
+for themselves from their profile - see the next section.
+
 ## Two-factor login (TOTP)
 
 Separate from the per-account OTP field described above: this is a second
