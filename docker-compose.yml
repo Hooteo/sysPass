@@ -5,8 +5,12 @@ services:
     image: ghcr.io/hooteo/syspass:latest
     restart: always
     ports:
-      - "80"
-      - "443"
+      # Fixed host ports instead of Docker picking a random free one each
+      # time (what a plain "80"/"443" here would do) - change these two
+      # numbers if they clash with something else already using them on
+      # the host, nothing else in this file depends on the exact value.
+      - "8099:80"
+      - "8443:443"
     links:
       # Must match the database service's name below (syspass-db) - this
       # is what makes Docker's internal DNS resolve that hostname to the
