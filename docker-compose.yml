@@ -22,6 +22,7 @@ services:
       - SYSPASS_DB_PASS=${SYSPASS_DB_PASS}
       - SYSPASS_DB_VERSION=${SYSPASS_DB_VERSION}
       - SYSPASS_APP_VERSION=${SYSPASS_APP_VERSION}
+      - SYSPASS_AUTO_MIGRATE=${SYSPASS_AUTO_MIGRATE:-yes}
   db:
     container_name: syspass-db
     restart: always

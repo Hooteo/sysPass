@@ -26,6 +26,7 @@ RUN sed -i \
             gettext \
             unzip \
             git \
+            curl \
         && { ok=1; break; } \
         || { echo "apt-get install failed (attempt $i/3), retrying in 10s..."; sleep 10; apt-get update; }; \
     done; \

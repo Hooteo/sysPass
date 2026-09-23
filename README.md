@@ -33,6 +33,10 @@ PHP web based Password Manager for business and personal use.
   generating a random one on first boot - see `.env.example`.
 - Added optional two-factor (TOTP) login for sysPass itself, separate from
   the per-account OTP feature above - see "Two-factor login" below.
+- The container now applies any pending DB schema upgrade automatically on
+  boot - `docker compose pull && docker compose up -d` is enough after a
+  new image, no more clicking through the upgrade confirmation screen by
+  hand. See "Automatic DB schema upgrades" below.
 
 ## Running with Docker
 
@@ -133,11 +137,11 @@ docker compose up -d app
 ```
 
 **5. Verify:**
-- Open the site - you should land on the upgrade confirmation screen, not
-  the install wizard (seeing the install wizard means `SYSPASS_DB_VERSION`
+- Check `docker compose logs app` for a line starting with `Auto-migrate:`
+  - it should say `no upgrade needed` once it catches up (seeing the
+  install wizard instead when you open the site means `SYSPASS_DB_VERSION`
   wasn't picked up - double check `.env` and that `app/config/config.xml`
-  doesn't already exist with stale values from an earlier attempt). Click
-  through the upgrade confirmation once.
+  doesn't already exist with stale values from an earlier attempt).
 - Log in with an existing account.
 - Open a public link that was generated *before* the migration and
   confirm it still resolves - this is the real test that `passwordSalt`
@@ -146,6 +150,38 @@ docker compose up -d app
   issue, see step 3) or repeated `Context not initialized` notices
   (harmless and self-resolving - happens once while sysPass migrates the
   `config.xml` format itself, tied to a stale `<configVersion>`).
+
+## Automatic DB schema upgrades
+
+Stock sysPass requires a human to open the site after a version bump and
+click through an "upgrade confirmation" screen before the app is usable
+again - easy to forget when the image is upgraded by CI/Portainer rather
+than by hand. This fork's entrypoint does that step itself on every
+container start:
+
+1. It starts Apache privately (not yet reachable from outside the
+   container), requests any page once - which is what makes stock sysPass
+   generate a one-time `<upgradeKey>` in `config.xml` when an upgrade is
+   pending - and reads that key back out.
+2. If a key was generated, it POSTs to the same `upgrade/upgrade` endpoint
+   the browser's confirmation button would, applying every pending
+   `schemas/*.sql` step in order (the exact same code path as clicking
+   the button - see `UpgradeController::upgradeAction()` /
+   `UpgradeDatabaseService::upgrade()`).
+3. It stops that private Apache and only then hands off to the real one
+   (`apache2-foreground`), so nothing serves real traffic until the
+   schema is current.
+
+You'll see `Auto-migrate: ...` lines in `docker compose logs app` on every
+start, ending in either `no upgrade needed` or an "Application
+successfully updated" result. If it fails for any reason (e.g. the
+database isn't reachable yet), it logs that and boots normally anyway -
+you fall back to the old manual behavior, nothing is left half-migrated.
+
+Runs only when `app/config/config.xml` already exists (a brand new,
+not-yet-installed instance goes through the install wizard instead, there
+is nothing to upgrade). Set `SYSPASS_AUTO_MIGRATE=no` in `.env` to disable
+it and go back to confirming upgrades by hand in the browser.
 
 ## Two-factor login (TOTP)
 
@@ -199,16 +235,15 @@ just a safety check.
 
 ### Losing access
 
-If a user loses their authenticator device, an admin resets their 2FA:
+If a user loses their authenticator device, an admin resets their 2FA from
+the Users admin screen (Users → the key icon next to a user's row →
+confirm). The user then re-enrolls from their profile with a new secret.
+
+The same can be done directly in the database if needed:
 
 ```sql
 DELETE FROM UserMfa WHERE userId = <id>;
 ```
-
-(A dedicated button for this in the admin user-management screen is a
-natural follow-up - not included yet, since it touches a large existing
-form template that wasn't part of this change.) The user then re-enrolls
-from their profile with a new secret.
 
 ## License
 
