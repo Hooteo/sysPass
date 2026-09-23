@@ -147,10 +147,30 @@ abstract class ControllerBase
         $this->view->assign('isDemo', $this->configData->isDemoEnabled());
         $this->view->assign('themeUri', $this->view->getTheme()->getThemeUri());
         $this->view->assign('configData', $this->configData);
-        $this->view->assign('sk', $loggedIn ? $this->session->generateSecurityKey($this->configData->getPasswordSalt()) : '');
+        $this->view->assign('sk', $loggedIn ? $this->getOrCreateSecurityKey() : '');
 
         // Pass the action name to the template as a variable
         $this->view->assign($this->actionName, true);
+    }
+
+    /**
+     * Reuse the session's existing security key instead of rotating it on
+     * every single request (this used to regenerate it unconditionally,
+     * including on background/AJAX calls - any other request on the page
+     * would silently invalidate the token already embedded in the current
+     * view, forcing a second click to succeed). Only generates a new one
+     * the first time a session has none, same lifetime as the session
+     * itself from then on.
+     *
+     * @return string
+     */
+    private function getOrCreateSecurityKey(): string
+    {
+        $sk = $this->session->getSecurityKey();
+
+        return empty($sk)
+            ? $this->session->generateSecurityKey($this->configData->getPasswordSalt())
+            : $sk;
     }
 
     /**
