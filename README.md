@@ -335,14 +335,14 @@ something specific to this theme.
 
 ## Cleartext password export (disaster recovery)
 
-`scripts/export_passwords_cleartext.py` exports every account's password
-in plain text to a CSV, for a printed copy kept in a safe in case sysPass
-itself ever becomes unavailable. It goes through sysPass's own JSON-RPC
-API (`account/search` + `account/viewPass`) rather than reimplementing
-the encryption scheme, so the decryption is done by sysPass's own,
-already-tested code. See the docstring at the top of the script for
-setup (two API tokens needed) and usage. Handle the output like the
-sensitive document it is - the script's own final message repeats this.
+`scripts/password-export/` has two Python tools that export every
+account's password in plain text to a CSV, for a printed copy kept in a
+safe in case sysPass itself ever becomes unavailable - one goes through
+the live app's own API, the other reads the database directly (for when
+the app is down but the database survived). See
+[`scripts/password-export/README.md`](scripts/password-export/README.md)
+for setup and usage. Handle the output like the sensitive document it
+is - both scripts' own final message repeats this.
 
 ## License
 
