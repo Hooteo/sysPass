@@ -333,6 +333,17 @@ already named `*.min.css` as needing it - silently dropping its content
 instead of erroring. This is a pre-existing quirk in stock sysPass, not
 something specific to this theme.
 
+## Cleartext password export (disaster recovery)
+
+`scripts/export_passwords_cleartext.py` exports every account's password
+in plain text to a CSV, for a printed copy kept in a safe in case sysPass
+itself ever becomes unavailable. It goes through sysPass's own JSON-RPC
+API (`account/search` + `account/viewPass`) rather than reimplementing
+the encryption scheme, so the decryption is done by sysPass's own,
+already-tested code. See the docstring at the top of the script for
+setup (two API tokens needed) and usage. Handle the output like the
+sensitive document it is - the script's own final message repeats this.
+
 ## License
 
 This software is licensed under the GNU GPLv3. See the `COPYING` file for
