@@ -264,6 +264,48 @@ hr {
   color: var(--md-text);
 }
 
+.mdl-chip {
+  background-color: var(--md-surface-alt);
+  color: var(--md-text);
+}
+
+/* Account search results (card and grid layout share these classes -
+   search-card.scss / search-grid.scss hardcode a white card background,
+   never themed) */
+#data-search .account-label {
+  background-color: var(--md-surface) !important;
+  color: var(--md-text-secondary) !important;
+}
+
+#data-search .account-label .field-name {
+  color: var(--md-text-disabled) !important;
+  border-bottom-color: var(--md-border) !important;
+}
+
+#data-search .account-label .field-text {
+  color: var(--md-text) !important;
+}
+
+#data-search .account-label .field-text a,
+#data-search .account-label a.btn-action {
+  color: #8c9eff !important;
+}
+
+#data-search .account-label .header .field-name,
+#data-search .account-label .no-link,
+#data-search .account-label .no-link a {
+  color: var(--md-text) !important;
+}
+
+#data-search .account-actions {
+  border-top-color: var(--md-border) !important;
+}
+
+#data-search .tags-box span.tag {
+  background-color: var(--md-surface-alt);
+  color: var(--md-text-secondary);
+}
+
 /* Tables (native MDL data table, if used anywhere) */
 .mdl-data-table {
   background-color: var(--md-surface);
