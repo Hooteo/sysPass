@@ -47,7 +47,13 @@ services:
     image: mariadb:10.2
     environment:
       - MYSQL_ROOT_PASSWORD=${SYSPASS_DB_ROOT_PASS}
-      - MYSQL_DATABASE=${SYSPASS_DB_NAME}
+      # Deliberately NOT setting MYSQL_DATABASE here. That variable makes
+      # the mariadb image pre-create an empty schema with this name on
+      # first boot - which then makes a FRESH install's own installer
+      # wizard refuse with "The database already exists", since it
+      # insists on creating that schema itself. Not needed for a
+      # migration either: the schema comes from the dump you import (see
+      # MIGRATION.md), before the app ever starts.
       - MYSQL_USER=${SYSPASS_DB_USER}
       - MYSQL_PASSWORD=${SYSPASS_DB_PASS}
     ports:

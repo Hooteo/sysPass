@@ -64,13 +64,22 @@ later and restarting does nothing to an already-installed instance.
 | Variable | What to put |
 |---|---|
 | `SYSPASS_PASSWORD_SALT` | Leave empty (auto-generated), or `openssl rand -hex 32` |
-| `SYSPASS_DB_HOST/PORT/ROOT_PASS/NAME/USER/PASS` | Anything you like - these also create the database user |
+| `SYSPASS_DB_HOST/PORT/ROOT_PASS` | Anything you like |
+| `SYSPASS_DB_NAME/USER/PASS` | Anything you like, but don't actually end up used - see below |
 | `SYSPASS_DB_VERSION` / `SYSPASS_APP_VERSION` | **Leave both empty.** This is what makes the install wizard run |
 | `SYSPASS_AUTO_MIGRATE` | Leave as `yes` (default) - nothing to migrate yet, but no reason to turn it off |
 | `SYSPASS_APPLICATION_URL` | Leave empty (see below) |
 
 After `docker compose up -d`, open the site and go through the install
-wizard normally.
+wizard normally. In the wizard's database step, use `root` /
+`SYSPASS_DB_ROOT_PASS` as the DB admin credentials and `syspass-db` as
+the host - the wizard creates the app's own schema and DB user itself
+(a random `sp_<hex>` one, not `SYSPASS_DB_USER`/`PASS` above - that's a
+stock sysPass installer behavior, not something this fork controls).
+This is also why `docker-compose.yml` deliberately does **not** pre-create
+an empty database via `MYSQL_DATABASE`: the wizard insists on creating
+that schema itself and refuses with "The database already exists" if it
+finds one already there, even an empty one.
 
 ### Migration (importing an existing database)
 
