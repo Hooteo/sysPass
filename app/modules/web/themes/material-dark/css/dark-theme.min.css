@@ -388,6 +388,55 @@ fieldset.data,
   color: var(--md-text-secondary);
 }
 
+/* Plain native <select> elements (client/category/tags filters etc.) -
+   most get replaced by a selectize dropdown at runtime (already themed
+   above), but this covers any that don't and the moment before JS runs */
+select {
+  background-color: var(--md-surface);
+  color: var(--md-text);
+  border-color: var(--md-border-strong);
+}
+
+select option {
+  background-color: var(--md-surface-raised);
+  color: var(--md-text);
+}
+
+.mdl-slider__background-flex {
+  background-color: var(--md-border-strong) !important;
+}
+
+.mdl-slider {
+  background: transparent;
+}
+
+.mdl-slider::-webkit-slider-runnable-track {
+  background-color: var(--md-border-strong);
+}
+
+.mdl-slider::-moz-range-track {
+  background-color: var(--md-border-strong);
+}
+
+/* Pagination bar at the bottom of a results list - hardcoded white in
+   styles.scss (.pager), same issue as the account cards */
+.pager {
+  background-color: var(--md-surface) !important;
+  color: var(--md-text-secondary) !important;
+}
+
+.pager a {
+  color: var(--md-text-secondary) !important;
+}
+
+.data-header-minimal {
+  border-bottom-color: var(--md-border);
+}
+
+.data-header-minimal li a {
+  color: var(--md-text-secondary);
+}
+
 #box-popup {
   background-color: var(--md-surface-raised);
 }
@@ -429,6 +478,29 @@ footer a {
 
 .notice-blue, .status-blue {
   background-color: rgba(33, 150, 243, .16) !important;
+}
+
+/* Same pastel-background problem, different mixin (_base.scss's
+   color-red()/color-teal()/color-amber()/color-blue()) used directly by
+   these specific selectors instead of a reusable class */
+.error,
+.global-on,
+.msg-warning,
+.msg-option-unvailable {
+  background-color: rgba(255, 202, 40, .16) !important;
+  color: #ffca28 !important;
+}
+
+.filter-on,
+.msg-ok {
+  background-color: rgba(38, 166, 154, .16) !important;
+  color: #26a69a !important;
+}
+
+fieldset.warning,
+.msg-critical {
+  background-color: rgba(239, 83, 80, .16) !important;
+  color: #ef5350 !important;
 }
 
 /* ==========================================================================
