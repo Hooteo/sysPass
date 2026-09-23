@@ -37,9 +37,8 @@ PHP web based Password Manager for business and personal use.
   boot - `docker compose pull && docker compose up -d` is enough after a
   new image, no more clicking through the upgrade confirmation screen by
   hand. See "Automatic DB schema upgrades" below.
-- Added a dark theme ("Material Dark"), now the default for new installs
-  - see "Dark theme" below for how to switch an already-installed
-  instance over to it.
+- Added a dark theme ("Material Dark"), selectable alongside the stock
+  Material Blue (which stays the default) - see "Dark theme" below.
 
 ## Running with Docker
 
@@ -302,12 +301,7 @@ Blue" theme (`app/modules/web/themes/material-dark`). It reuses Material
 Blue's page templates and JS unchanged - only the colors differ - so any
 future template change to Material Blue applies to both automatically.
 
-It's now the **default theme for new installs** (`ConfigData`'s
-`siteTheme` default). This does **not** retroactively change an
-already-installed instance - sysPass persists the theme choice in
-`app/config/config.xml` the moment it's first installed, and that value
-takes precedence over the code default forever after. To switch an
-existing instance over:
+Material Blue stays the default for everyone - Material Dark is opt-in:
 
 - **Instance-wide** (affects every user without a personal theme
   preference already set - on an instance that's only ever had one theme

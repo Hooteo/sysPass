@@ -288,7 +288,7 @@ final class ConfigData implements JsonSerializable
     /**
      * @var string
      */
-    private $siteTheme = 'material-dark';
+    private $siteTheme = 'material-blue';
     /**
      * @var string
      */
