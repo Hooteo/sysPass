@@ -11,6 +11,10 @@ use SP\Core\UI\ThemeIcons;
 use SP\Mvc\View\Template;
 
 $enabled = $_getvar('enabled');
+$secret = $_getvar('secret');
+
+$otpAuthUri = 'otpauth://totp/' . rawurlencode('sysPass') . ':' . rawurlencode($_getvar('login'))
+    . '?secret=' . $secret . '&issuer=' . rawurlencode('sysPass') . '&digits=6&period=30';
 ?>
 
 <div id="title" class="titleNormal">
@@ -50,9 +54,21 @@ $enabled = $_getvar('enabled');
         </ul>
     </div>
 <?php else: ?>
-    <p><?php echo __('Add this key manually in your authenticator app (Google Authenticator, Authy, etc.):'); ?></p>
-    <p class="center"><code id="mfa-secret"><?php echo $_getvar('secret'); ?></code></p>
+    <p><?php echo __('Scan this code with your authenticator app (Google Authenticator, Authy, etc.):'); ?></p>
+    <p class="center"><span id="mfa-qrcode" style="display:inline-block;padding:.5em;background:#fff"></span></p>
+    <p class="center">
+        <?php echo __('Can\'t scan it? Add this key manually instead:'); ?>
+        <br><code id="mfa-secret"><?php echo $secret; ?></code>
+    </p>
     <p><?php echo __('Then enter the 6-digit code it shows, and your current password to confirm, to enable it.'); ?></p>
+
+    <script>
+        new QRCode('mfa-qrcode', {
+            text: <?php echo json_encode($otpAuthUri); ?>,
+            width: 180,
+            height: 180
+        });
+    </script>
 
     <form method="post" name="frmMfaEnable" id="frmMfaEnable"
           class="form-action"

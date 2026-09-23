@@ -121,6 +121,7 @@ final class UserSettingsManagerController extends ControllerBase implements Exte
 
         $template->assign('enabled', $enabled);
         $template->assign('secret', $enabled ? '' : TotpUtil::generateSecret());
+        $template->assign('login', $this->session->getUserData()->getLogin());
 
         return new DataTab(__('Two-Factor Authentication'), $template);
     }

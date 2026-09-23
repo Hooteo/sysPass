@@ -274,11 +274,13 @@ the shared master password alone is not enough to derive another user's
 ### Enabling it
 
 From your own profile (avatar menu → account settings), a "Two-Factor
-Authentication" tab shows a freshly generated secret to add manually to
-your authenticator app (no QR code - same "paste the key" approach as the
-per-account OTP field, one less dependency). Enter the 6-digit code it
-produces plus your current password to confirm and enable it - the
-password confirmation is required by the encryption scheme above, not
+Authentication" tab shows a QR code to scan with your authenticator app
+(generated client-side with a vendored copy of davidshimjs/qrcodejs,
+`public/vendor/js/qrcode.min.js` - the secret never leaves the browser
+over the network to produce it), plus the same secret as text underneath
+for devices that can't scan. Enter the 6-digit code it produces plus your
+current password to confirm and enable it - the password confirmation is
+required by the encryption scheme above, not
 just a safety check.
 
 ### Losing access

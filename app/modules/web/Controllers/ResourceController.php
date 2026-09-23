@@ -100,6 +100,7 @@ final class ResourceController extends SimpleControllerBase
                     'selectize-plugins.min.js',
                     'zxcvbn-async.min.js',
                     'jsencrypt.min.js',
+                    'qrcode.min.js',
                     'spark-md5.min.js',
                     'moment.min.js',
                     'moment-timezone.min.js',
