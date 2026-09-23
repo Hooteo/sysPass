@@ -51,6 +51,71 @@ See `Dockerfile` and `docker/` for the image build and `docker-compose.yml`
 for the default service layout (app + MariaDB, `app/config` and
 `app/backup` persisted as named volumes).
 
+## Environment variables: fresh install vs. migration
+
+`.env.example` has the full explanation inline for each variable; this is
+the short version of which ones matter for which scenario. All of them
+except `SYSPASS_AUTO_MIGRATE` are read **only the first time** the app
+finds an empty `app/config` volume (no `config.xml` yet) - editing `.env`
+later and restarting does nothing to an already-installed instance.
+
+### Fresh install (nothing to import)
+
+| Variable | What to put |
+|---|---|
+| `SYSPASS_PASSWORD_SALT` | Leave empty (auto-generated), or `openssl rand -hex 32` |
+| `SYSPASS_DB_HOST/PORT/ROOT_PASS/NAME/USER/PASS` | Anything you like - these also create the database user |
+| `SYSPASS_DB_VERSION` / `SYSPASS_APP_VERSION` | **Leave both empty.** This is what makes the install wizard run |
+| `SYSPASS_AUTO_MIGRATE` | Leave as `yes` (default) - nothing to migrate yet, but no reason to turn it off |
+| `SYSPASS_APPLICATION_URL` | Leave empty (see below) |
+
+After `docker compose up -d`, open the site and go through the install
+wizard normally.
+
+### Migration (importing an existing database)
+
+| Variable | What to put |
+|---|---|
+| `SYSPASS_PASSWORD_SALT` | The **old** instance's `<passwordSalt>`, verbatim - get this wrong and every public/deep link generated before the migration breaks |
+| `SYSPASS_DB_NAME` / `USER` / `PASS` | The **old** instance's exact `<dbName>`/`<dbUser>`/`<dbPass>` - not values of your choosing. `dbUser` in particular was very likely auto-generated (`sp_<hex>`), not `syspass` |
+| `SYSPASS_DB_ROOT_PASS` | A **new** password of your choosing, for the fresh MariaDB volume you're restoring into |
+| `SYSPASS_DB_VERSION` / `SYSPASS_APP_VERSION` | The **old** instance's exact `<databaseVersion>`/`<appVersion>` - this is what tells sysPass there's already a populated database, skipping the install wizard |
+| `SYSPASS_AUTO_MIGRATE` | Leave as `yes` (default) - this is what brings the imported, older-schema database up to date (OTP/MFA tables etc.) automatically on first boot |
+| `SYSPASS_APPLICATION_URL` | Leave empty unless you have a specific reason not to (see below) |
+
+All five values above the line come from the old instance's own
+`app/config/config.xml` - see `MIGRATION.md` for the exact
+`grep`/restore commands.
+
+### About `SYSPASS_APPLICATION_URL`
+
+Leave this empty in both cases, unless you specifically need every link
+in the app pinned to one fixed address. When it's set, **every internal
+navigation link and AJAX route in the entire app** - not just public
+links - is built from it instead of adapting to whatever host or IP the
+browser actually used to reach the site
+(`Template.php`'s `$_getRoute()`, used by nearly every page). Set it to
+an address that only works from *some* of the places you access sysPass
+from - eg. an FQDN that only resolves on one network, while you also
+reach the same instance via an internal IP from another - and the app
+will look like it's loading (the first page's raw HTML still renders)
+while everything you click on afterwards silently targets the wrong
+origin and fails.
+
+**If this has already happened to a running instance** (site loads but
+nothing in it actually works when reached by IP/a different address than
+the one it's pinned to): edit `config.xml` directly rather than trying to
+reach the broken Configuration screen through the same broken links -
+
+```bash
+docker exec <app-container> sed -i '/<applicationUrl>/d' /var/www/html/sysPass/app/config/config.xml
+docker restart <app-container>
+```
+
+removes the pin entirely and lets sysPass adapt to the request again, or
+edit that same line by hand instead of deleting it if you want one
+specific address kept (eg. your internal IP) rather than none at all.
+
 ## Migrating from an existing sysPass installation
 
 > For a longer, more hand-holding walkthrough of this same process (in

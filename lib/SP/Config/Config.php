@@ -196,6 +196,19 @@ final class Config
         if ($appVersion !== false && $appVersion !== '') {
             $configData->setAppVersion($appVersion);
         }
+
+        // Left unset by default on purpose: every internal navigation link
+        // and AJAX route in the app (Template.php's $_getRoute, used by
+        // essentially every template) is built from this when it's set,
+        // instead of adapting to whichever host/IP the request actually
+        // came in on. Only set it if you need every link pinned to one
+        // specific address regardless of how the site is reached (eg. a
+        // single public FQDN in front of a reverse proxy) - see README.md.
+        $applicationUrl = getenv('SYSPASS_APPLICATION_URL');
+
+        if ($applicationUrl !== false && $applicationUrl !== '') {
+            $configData->setApplicationUrl($applicationUrl);
+        }
     }
 
     /**
