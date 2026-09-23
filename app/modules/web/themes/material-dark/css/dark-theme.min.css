@@ -7,10 +7,12 @@
  * component base styles are more specific than a single class selector.
  *
  * Palette: Material dark theme surface levels (bg #121212, surfaces
- * #1e1e1e / #262626 / #2c2c2c, text at 87%/60%/38% white opacity),
- * keeping the same indigo accent (#536DFE) and status colors (red/teal/
- * amber/blue) Material Blue already uses, just with translucent dark
- * backgrounds instead of pastel light ones behind them.
+ * #1e1e1e / #262626 / #2c2c2c), keeping the same indigo accent (#536DFE)
+ * and status colors (red/teal/amber/blue) Material Blue already uses,
+ * just with translucent dark backgrounds instead of pastel light ones
+ * behind them. Body text is warm orange (#ffb74d, Material "Orange
+ * 300") instead of the usual near-white, on request - still >8:1
+ * contrast against every surface color above, well past WCAG AA.
  */
 
 :root {
@@ -20,9 +22,10 @@
   --md-surface-raised: #2c2c2c;
   --md-border: rgba(255, 255, 255, .12);
   --md-border-strong: rgba(255, 255, 255, .24);
-  --md-text: rgba(255, 255, 255, .87);
-  --md-text-secondary: rgba(255, 255, 255, .60);
-  --md-text-disabled: rgba(255, 255, 255, .38);
+  --md-text: #ffb74d;
+  --md-text-secondary: rgba(255, 183, 77, .75);
+  --md-text-disabled: rgba(255, 183, 77, .38);
+  --md-link: #ffa726;
   --md-accent: #536dfe;
 }
 
@@ -49,7 +52,7 @@ html, body {
 }
 
 a {
-  color: #8c9eff;
+  color: var(--md-link);
 }
 
 hr {
@@ -288,7 +291,7 @@ hr {
 
 #data-search .account-label .field-text a,
 #data-search .account-label a.btn-action {
-  color: #8c9eff !important;
+  color: var(--md-link) !important;
 }
 
 #data-search .account-label .header .field-name,
@@ -334,11 +337,56 @@ hr {
   color: var(--md-text);
 }
 
+/* #content .data - the generic content wrapper table/box used across
+   ~50 different templates (forms, config, popups...) - was the single
+   biggest miss in the first pass: hardcoded white, everything nested in
+   it inherited orange-on-white instead of orange-on-dark */
+#content .data,
 .data-container,
 fieldset.data,
 .tblConfig {
   background-color: var(--md-surface);
   border-color: var(--md-border);
+}
+
+#content td.descField {
+  color: var(--md-text-secondary);
+  border-right-color: var(--md-border);
+}
+
+.data-rows ul,
+.data-rows li.cell-actions {
+  background-color: var(--md-surface-alt) !important;
+}
+
+#box-popup.help,
+#box-popup .help {
+  background-color: var(--md-surface) !important;
+}
+
+.list-wrap li {
+  background-color: var(--md-surface-alt);
+  color: var(--md-text);
+}
+
+.list-wrap li:hover {
+  background-color: var(--md-surface-raised) !important;
+  color: var(--md-text) !important;
+}
+
+.noRes {
+  background-color: var(--md-surface);
+  color: var(--md-text-secondary);
+  border-color: var(--md-border);
+}
+
+.help-box {
+  background-color: var(--md-surface-raised) !important;
+  color: var(--md-text-secondary) !important;
+}
+
+.btn-checks {
+  border-bottom-color: var(--md-border);
 }
 
 .tblConfig td.rowHeader,
@@ -535,6 +583,31 @@ body.login footer, body.logout footer, body.userpassreset footer {
 #demo-info {
   color: var(--md-text-secondary);
   border-color: var(--md-border);
+}
+
+/* Wiki popup (styles-wiki.min.css, only loaded when the wiki plugin is
+   in use) - dark grey/near-black text, invisible on this theme's dark
+   popup background */
+#wikiPage h1, #wikiPage h2, #wikiPage h3,
+#wikiPage h4, #wikiPage h5, #wikiPage h6 {
+  color: var(--md-text) !important;
+  border-bottom-color: var(--md-border) !important;
+}
+
+#wikiPage h1 a, #wikiPage h2 a, #wikiPage h3 a,
+#wikiPage h4 a, #wikiPage h5 a, #wikiPage h6 a {
+  color: var(--md-link) !important;
+}
+
+#wikiPage pre {
+  background-color: var(--md-surface-alt);
+  border-color: var(--md-border) !important;
+  box-shadow: none !important;
+  color: var(--md-text-secondary);
+}
+
+#wikiPage ul li, #wikiPage ol li, #wikiPage li .li {
+  color: var(--md-text-secondary) !important;
 }
 
 /* ==========================================================================
