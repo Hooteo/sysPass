@@ -39,6 +39,11 @@ PHP web based Password Manager for business and personal use.
   hand. See "Automatic DB schema upgrades" below.
 - Added a dark theme ("Material Dark"), selectable alongside the stock
   Material Blue (which stays the default) - see "Dark theme" below.
+- Fixed the install wizard granting the new DB user access scoped to the
+  app container's own IP/hostname at that exact moment, instead of `%` -
+  on Docker, where that address changes on every container recreate,
+  this silently broke DB access after the next restart/redeploy until
+  someone noticed and re-granted the right host by hand.
 
 ## Running with Docker
 

@@ -221,12 +221,22 @@ final class Installer extends Service
         ) {
             if (APP_MODULE === 'tests') {
                 $address = SELF_IP_ADDRESS;
-            } else {
-                $address = $this->request->getServer('SERVER_ADDR');
-            }
 
-            $this->installData->setDbAuthHost($address);
-            $this->installData->setDbAuthHostDns(gethostbyaddr($address));
+                $this->installData->setDbAuthHost($address);
+                $this->installData->setDbAuthHostDns(gethostbyaddr($address));
+            } else {
+                // Fork change: stock sysPass scopes the new DB user's
+                // GRANT to this specific request's own SERVER_ADDR (the
+                // app's own IP as MySQL sees it) plus its reverse-DNS
+                // hostname - fine on a server with a fixed IP, but on
+                // Docker the app container gets a NEW IP and hostname
+                // every time it's recreated (restart, redeploy, a plain
+                // `docker compose up` again), silently breaking DB
+                // access until someone notices and re-grants the right
+                // host by hand. '%' matches from any host, so the DB
+                // user just keeps working across container recreates.
+                $this->installData->setDbAuthHost('%');
+            }
         } else {
             $this->installData->setDbAuthHost('localhost');
         }
