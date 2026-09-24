@@ -56,6 +56,30 @@ first account before processing the rest, so a wrong password fails
 immediately with a clear message instead of grinding through the whole
 database.
 
+### Running it as a container instead
+
+`Dockerfile` here packages `export_via_db.py` (plus `defuse_decrypt.py`)
+so you don't need a local Python/pip setup - just Docker, which you
+already have. It's wired into the main `docker-compose.yml` as a
+`tools`-profiled service (`export-db-passwords`), sharing that stack's
+network so it can reach `syspass-db` by name, but kept out of a normal
+`docker compose up` - it only ever runs when you explicitly ask for it:
+
+```bash
+cd /opt/sysPass   # the repo root, where docker-compose.yml lives
+docker compose --profile tools build export-db-passwords
+mkdir -p export-output
+docker compose --profile tools run --rm export-db-passwords \
+    --host syspass-db --db-user root --database syspass \
+    --output /out/accounts_export.csv
+```
+
+Same interactive prompts as running it directly. `--rm` throws the
+container away once it exits; the CSV itself lands in `./export-output`
+on the host (via the volume mount), not inside the container, so it
+survives that. `export-output/` is git-ignored on purpose - never let
+this land in the repo.
+
 ### About `defuse_decrypt.py`
 
 sysPass encrypts account passwords with

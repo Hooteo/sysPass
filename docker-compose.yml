@@ -66,6 +66,29 @@ services:
       # which is fine, not a conflict.
       - syspass-db:/var/lib/mysql
 
+  # Cleartext password export for the disaster-recovery safe copy (see
+  # scripts/password-export/README.md). Part of this same stack so it's
+  # already on the same network and can reach syspass-db by name, but
+  # `profiles` keeps it out of a normal `docker compose up` - it only
+  # runs when you explicitly ask for it:
+  #
+  #   docker compose --profile tools build export-db-passwords
+  #   mkdir -p export-output
+  #   docker compose --profile tools run --rm export-db-passwords \
+  #     --host syspass-db --db-user root --database syspass \
+  #     --output /out/accounts_export.csv
+  #
+  # (`--rm` throws the container away after the run - the CSV itself
+  # lands in ./export-output on the host via the volume below. Print it
+  # and delete it from disk right after - see that README for the rest.)
+  export-db-passwords:
+    profiles: ["tools"]
+    build: ./scripts/password-export
+    links:
+      - syspass-db
+    volumes:
+      - ./export-output:/out
+
 volumes:
   syspass-config: {}
   syspass-backup: {}

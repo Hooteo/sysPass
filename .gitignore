@@ -66,4 +66,9 @@ composer.phar
 
 .env
 
+# Cleartext password exports (scripts/password-export/) - never committed,
+# print it and delete it from disk, don't let it linger anywhere
+export-output/
+*_export.csv
+
 !.blank
