@@ -87,15 +87,27 @@ final class VersionUtil
     public static function normalizeVersionForCompare($versionIn)
     {
         if (is_string($versionIn) && !empty($versionIn)) {
-            list($version, $build) = explode('.', $versionIn);
+            list($version, $build) = explode('.', $versionIn, 2);
 
-            $nomalizedVersion = 0;
-
-            foreach (str_split($version) as $key => $value) {
-                $nomalizedVersion += (int)$value * (10 ** (3 - $key));
-            }
-
-            return $nomalizedVersion . '.' . $build;
+            // Fork fix: the previous char-by-char reconstruction assumed
+            // the version prefix was always exactly 3 digits (weights
+            // 1000/100/10, i.e. implicitly padded with one trailing
+            // zero) - correct for entries like "320", but WRONG for a
+            // 4-digit prefix like "3211" (real stock sysPass 3.2.11,
+            // Installer::VERSION = [3, 2, 11]), which got treated as a
+            // plain 1:1 decimal value instead of being scaled the same
+            // way, making 3-and-4-digit prefixes compare inconsistently
+            // relative to each other. A plain (int) cast scales every
+            // length the same way (its own literal decimal value), so
+            // comparisons stay consistent regardless of digit count.
+            //
+            // NOTE: this does NOT by itself make "3211" (a real, current
+            // stock version) sort as older than this fork's own "320.x"
+            // migration entries - it's still numerically larger either
+            // way. See the comment on UpgradeDatabaseService::UPGRADES
+            // for why that specific collision needs a different value in
+            // SYSPASS_DB_VERSION, not a parsing fix.
+            return (int)$version . '.' . $build;
         }
 
         return '';

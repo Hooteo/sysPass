@@ -248,6 +248,16 @@ final class Installer extends Service
     private function setupConfig()
     {
         // Sets version and remove upgrade key
+        //
+        // Fork note: this stamps databaseVersion with the literal
+        // Installer::VERSION/BUILD ("3211.22070201" right now), NOT with
+        // this fork's own last-applied migration entry (see
+        // UpgradeDatabaseService::UPGRADES) - it's numerically larger
+        // than every "320.x" fork entry, so this value alone can't be
+        // used to distinguish "fresh install, has everything" from "old
+        // server's own old fresh-install stamp, predates the fork
+        // additions". Relevant if you ever copy this value out of an old
+        // config.xml for a migration - see MIGRATION.md.
         $this->configData->setConfigVersion(VersionUtil::getVersionStringNormalized());
         $this->configData->setDatabaseVersion(VersionUtil::getVersionStringNormalized());
         $this->configData->setUpgradeKey(null);

@@ -65,6 +65,32 @@ vecchio server - a patto di scommentare una riga in
   (es. `310.19042701`). Serve al nuovo sysPass per sapere da dove
   applicare gli aggiornamenti di schema mancanti (vedi Passo 5).
 
+⚠️ **Se il valore che trovi assomiglia a `3211.22070201`** (o comunque
+inizia con **4 cifre** prima del punto, non 3), **non copiarlo alla
+lettera in `SYSPASS_DB_VERSION`.** Non è un numero di versione delle
+migration di questo fork - è il timbro lasciato da un'installazione
+wizard (`Installer::VERSION`), che rimane fisso a `3.2.11` da quando
+esiste questo fork, indipendentemente da quante funzionalità del fork
+(OTP, MFA) siano state aggiunte dopo. È **numericamente più alto** delle
+versioni di aggiornamento interne di questo fork (`300.x`/`310.x`/
+`320.x`), quindi se lo usi così com'è, l'auto-migrate penserà di essere
+già aggiornato e **salterà in silenzio** gli aggiornamenti del fork
+(l'abbiamo verificato: succede esattamente questo, l'OTP per gli account
+sparisce dopo l'import). Usa invece:
+
+```
+SYSPASS_DB_VERSION=311.00000000
+SYSPASS_APP_VERSION=311.00000000
+```
+
+`311` sta correttamente tra `310` (l'ultima migration "stock" tracciata
+da questo fork) e `320` (le prime aggiunte del fork) - dice a sysPass
+"sei più recente delle vecchie migration stock, ma non hai ancora nessuna
+delle aggiunte di questo fork", che è la realtà per qualunque vecchio
+server con questo timbro. Se invece il valore che trovi è un normale
+`3xx.YYMMDDNN` a 3 cifre (es. `310.19042701`), usalo pure così com'è,
+copiato alla lettera.
+
 ## Passo 2 - Backup del vecchio database
 
 ```bash

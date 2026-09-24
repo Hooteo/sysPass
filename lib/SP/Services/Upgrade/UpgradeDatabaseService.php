@@ -46,6 +46,25 @@ final class UpgradeDatabaseService extends Service implements UpgradeInterface
 {
     /**
      * @var array Versiones actualizables
+     *
+     * Fork note: these "320.x" entries are this fork's own additions
+     * (OTP custom field, login MFA). Their version prefix ("320") is
+     * numerically SMALLER than Installer::VERSION = [3, 2, 11] (implodes
+     * to "3211", see Installer::setupConfig()) - the literal value stamped
+     * into a fresh install's <databaseVersion>, and into any old server's
+     * config.xml that went through such an install itself, whether or
+     * not that install's schema already included these fork additions.
+     *
+     * This means a straight copy of an old server's <databaseVersion>
+     * into SYSPASS_DB_VERSION for a migration (see MIGRATION.md) can
+     * make these entries look already-applied when they're not -
+     * needsUpgrade()/checkVersion() only compares this version STRING,
+     * never the actual DB structure (see README.md, "Automatic DB
+     * schema upgrades"). If a migrated instance's OTP/MFA data looks
+     * missing right after import despite AUTO_MIGRATE=yes, this is why -
+     * MIGRATION.md documents the workaround (use a version string that
+     * sorts between "310.x" and "320.x", not the old server's own literal
+     * value, when that value collides like this).
      */
     const UPGRADES = [
         '300.18010101',
