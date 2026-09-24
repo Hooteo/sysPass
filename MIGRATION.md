@@ -46,7 +46,14 @@ finché non sei sicuro, poi spegnilo.
 ## Passo 1 - Inventario del vecchio server
 
 Recupera questi valori dal vecchio `config.xml` (di solito dentro
-`app/config/config.xml` dell'installazione vecchia):
+`app/config/config.xml` dell'installazione vecchia). Se il vecchio
+server è un container Docker:
+
+```bash
+docker exec <container-app-sorgente> grep -E "passwordSalt|databaseVersion|appVersion" /var/www/html/sysPass/app/config/config.xml
+```
+
+Altrimenti, direttamente sul filesystem del vecchio server:
 
 ```bash
 grep -E "passwordSalt|databaseVersion|appVersion" config.xml
@@ -93,6 +100,18 @@ copiato alla lettera.
 
 ## Passo 2 - Backup del vecchio database
 
+Se il vecchio server **è anche lui un container Docker** (caso tipico:
+stai migrando da un vecchio deploy verso uno nuovo, sullo stesso host o
+un altro), fai il dump da dentro il container sorgente, `docker exec`
+verso l'esterno:
+
+```bash
+docker exec <container-db-sorgente> mysqldump -u<vecchio-root-user> -p'<vecchia-root-pass>' <nome-schema-syspass> > syspass-backup-$(date +%F).sql
+```
+
+Se invece il vecchio server è una macchina "normale" (non containerizzata),
+lancia `mysqldump` direttamente lì:
+
 ```bash
 mysqldump -u<vecchio-root-user> -p'<vecchia-root-pass>' <nome-schema-syspass> > syspass-backup-$(date +%F).sql
 ```
@@ -117,9 +136,12 @@ server - **questo fork lo corregge da solo automaticamente all'avvio**
 (vedi README, "Automatic fix for views with a stale DEFINER"), non serve
 fare nulla di manuale.
 
-Fai anche una copia del vecchio `config.xml`, non solo il dump:
+Fai anche una copia del vecchio `config.xml`, non solo il dump (utile
+per riprendere in mano i valori del Passo 1 in un secondo momento):
 
 ```bash
+docker cp <container-app-sorgente>:/var/www/html/sysPass/app/config/config.xml ./config.xml.old
+# oppure, se il vecchio server non è un container:
 cp app/config/config.xml ./config.xml.old
 ```
 
@@ -165,18 +187,53 @@ calcolare a mano fino a che punto applicare gli aggiornamenti.
 
 ## Passo 4 - Importare il database
 
-**Avvia solo il database, non ancora l'app:**
+**L'ordine conta, e non è opzionale: il database va importato PRIMA che
+l'app faccia anche solo una richiesta.** Con il percorso "migrazione"
+(`SYSPASS_DB_VERSION` valorizzato), l'app **salta il wizard** e assume
+che lo schema sia già lì - se parte contro un database ancora vuoto,
+ogni query fallisce ("tabella non esiste") invece di installare nulla.
+Non esiste un modo per far partire prima l'app e importare il dump
+"sopra" dopo, con questo percorso.
+
+### Se usi Portainer (stack)
+
+Un solo "Deploy the stack" farebbe partire **entrambi** i servizi
+insieme, e l'app proverebbe a rispondere alla prima richiesta (l'health
+check, il tuo primo accesso dal browser...) prima che tu abbia il tempo
+di importare il dump. Vai in due passaggi:
+
+1. **Primo deploy: solo il database.** Nell'editor dello stack, commenta
+   temporaneamente (o cancella) l'intero blocco del servizio `app` -
+   lascia solo `syspass-db` (e le sezioni `volumes:`/rete in fondo al
+   file). Deploy dello stack: parte solo il container del database.
+2. **Importa il dump** (comandi sotto) usando la console del container
+   `syspass-db` in Portainer, o `docker exec` via SSH se ci hai accesso.
+3. **Secondo deploy: aggiungi l'app.** Torna nell'editor dello stack,
+   rimetti/scommenta il blocco `app` che avevi tolto al passo 1, e fai
+   di nuovo "Deploy the stack" (o "Update the stack") - questa volta
+   l'app parte contro un database già popolato.
+
+### Comandi (CLI o console del container, stesso risultato)
+
+**Avvia solo il database, non ancora l'app** (equivalente CLI del punto
+1 sopra):
 
 ```bash
 docker compose up -d syspass-db
 ```
 
 Aspetta qualche secondo che MariaDB finisca di inizializzarsi, poi
-importa il dump:
+importa il dump **nel container di destinazione** (nome del container
+nuovo, non quello sorgente del Passo 2):
 
 ```bash
-docker exec -i syspass-db mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' < syspass-backup-YYYY-MM-DD.sql
+docker exec -i <container-db-destinazione> mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' <nome-database> < syspass-backup-YYYY-MM-DD.sql
 ```
+
+`<nome-database>` è lo stesso valore che hai messo in `SYSPASS_DB_NAME`
+al Passo 3 (es. `syspass`) - il dump del Passo 2 non contiene un
+`CREATE DATABASE`/`USE` (dato che non hai usato `--databases`), quindi
+va specificato qui sulla riga di comando, non è opzionale.
 
 ⚠️ **`-i`, non `-it`.** Con `-it` (TTY interattivo) l'input da file/pipe
 fallisce con `the input device is not a TTY`. Serve `-i` da solo quando
@@ -216,12 +273,16 @@ rete dedicata (esempio commentato in fondo a `docker-compose.yml`).
 docker compose up -d app
 ```
 
-Da questo momento in poi **non serve più cliccare nulla a mano**: al
-boot, l'entrypoint applica in automatico qualunque aggiornamento di
-schema mancante rispetto a `SYSPASS_DB_VERSION` (OTP per-account, MFA di
-login, e qualunque altro aggiornamento futuro), esattamente come
-cliccare a mano sulla schermata di conferma upgrade del browser, ma da
-solo. Controlla che sia andato tutto bene:
+(su Portainer, questo è il "secondo deploy" descritto al Passo 4 - basta
+far ripartire/aggiornare lo stack con il blocco `app` incluso)
+
+Da questo momento in poi **non serve più cliccare nulla a mano, e non
+serve nemmeno riavviare il container**: già al primissimo avvio,
+l'entrypoint applica in automatico qualunque aggiornamento di schema
+mancante rispetto a `SYSPASS_DB_VERSION` (OTP per-account, MFA di login,
+e qualunque altro aggiornamento futuro), esattamente come cliccare a
+mano sulla schermata di conferma upgrade del browser, ma da solo.
+Controlla che sia andato tutto bene:
 
 ```bash
 docker compose logs app | grep Auto-migrate
