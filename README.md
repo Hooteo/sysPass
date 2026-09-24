@@ -52,16 +52,18 @@ PHP web based Password Manager for business and personal use.
   MySQL/MariaDB deny access to the real, correctly-privileged DB user on
   every account search or password view, with an error that looks
   exactly like a wrong DB password/grant but isn't one.
-- The `syspass-db` service now grants `SYSPASS_DB_USER` access to
-  `SYSPASS_DB_NAME` itself on first boot (`docker/db-grant-init.sh`),
-  without pre-creating that database. Previously, `MYSQL_USER`/
-  `MYSQL_PASSWORD` alone (the mariadb image's own mechanism) only grant
-  real privileges when `MYSQL_DATABASE` is also set - which this stack
-  deliberately never sets (see "Fresh install" above) - so that DB user
-  was created with no actual access to anything, silently, until you
-  granted it by hand. This is also what makes `SYSPASS_DB_NAME`/`USER`/
-  `PASS` safe to pick freely during a migration instead of having to
-  match the old server's values.
+- Added `docker/db-grant-init.sh`, an optional `syspass-db` init script
+  (commented out by default in `docker-compose.yml` - uncomment for a
+  migration, see below) that grants `SYSPASS_DB_USER` access to
+  `SYSPASS_DB_NAME` itself on first boot, without pre-creating that
+  database. `MYSQL_USER`/`MYSQL_PASSWORD` alone (the mariadb image's own
+  mechanism) only grant real privileges when `MYSQL_DATABASE` is also
+  set - which this stack deliberately never sets (see "Fresh install"
+  below) - so without this, that DB user is created with no actual
+  access to anything until granted by hand. This is also what makes
+  `SYSPASS_DB_NAME`/`USER`/`PASS` safe to pick freely during a migration
+  instead of having to match the old server's values, as long as this
+  line is uncommented.
 
 ## Running with Docker
 
@@ -84,14 +86,15 @@ later and restarting does nothing to an already-installed instance.
 
 `SYSPASS_DB_NAME`/`USER`/`PASS` are pick-your-own values in **both**
 scenarios below, including migration - they do not need to match
-anything from an old server. The `syspass-db` service grants that exact
-user access to that exact database name on first boot
-(`docker/db-grant-init.sh`), before the schema itself exists yet, so it
-doesn't matter whether the schema then comes from the install wizard or
-from an imported dump - and a schema-only dump (the recommended way to
-migrate, see `MIGRATION.md`) never carries the old server's MySQL users
-in the first place, so there'd be nothing to "match" even if you wanted
-to.
+anything from an old server (a schema-only dump, the recommended way to
+migrate, never carries the old server's MySQL users in the first place,
+so there'd be nothing to "match" even if you wanted to). For a
+migration, uncomment the `docker/db-grant-init.sh` volume line for the
+`syspass-db` service in `docker-compose.yml` first - it grants that
+exact user access to that exact database name on first boot, before the
+schema itself exists yet, whether the schema then comes from the install
+wizard or from an imported dump. Leave it commented for a fresh install,
+the wizard doesn't need it.
 
 ### Fresh install (nothing to import)
 
@@ -231,6 +234,13 @@ Fill in:
 - `SYSPASS_DB_ROOT_PASS` = any new root password for the fresh MariaDB volume
 - `SYSPASS_DB_NAME`/`USER`/`PASS` = any values of your choosing
 
+Also uncomment the `docker/db-grant-init.sh` volume line for the
+`syspass-db` service in `docker-compose.yml` - see the comment right
+above it there. This is what grants `SYSPASS_DB_USER` access to
+`SYSPASS_DB_NAME` automatically; without it that user is created with no
+real privileges (see "Changes in this fork" above) and you'd have to
+`GRANT` it by hand instead.
+
 **3. Start only the database, restore the dump:**
 
 ```bash
@@ -239,10 +249,10 @@ docker compose up -d syspass-db
 docker exec -i syspass-db mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' < syspass-backup-YYYY-MM-DD.sql
 ```
 
-`SYSPASS_DB_USER` is already granted access to `SYSPASS_DB_NAME` at this
-point (`docker/db-grant-init.sh`, runs automatically the first time this
-volume is empty) - nothing to create or grant by hand, before or after
-the import, regardless of whether you used a schema-only dump or not.
+With the volume line uncommented above, `SYSPASS_DB_USER` is already
+granted access to `SYSPASS_DB_NAME` at this point (runs automatically
+the first time this volume is empty) - nothing to create or grant by
+hand, before or after the import.
 
 **4. Start the app:**
 

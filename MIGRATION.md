@@ -56,7 +56,8 @@ Solo tre valori, e basta un dump schema-only (Passo 2) per il resto -
 **non** ti servono `dbHost`/`dbName`/`dbUser`/`dbPass` del vecchio
 server: sul nuovo host scegli tu liberamente nome database/utente/
 password in `.env` (Passo 3), non devono combaciare con niente del
-vecchio server. In particolare:
+vecchio server - a patto di scommentare una riga in
+`docker-compose.yml` (vedi Passo 3). In particolare:
 
 - `passwordSalt` - **l'unico valore che non puoi scegliere tu**, va
   copiato identico (vedi sopra).
@@ -118,9 +119,17 @@ SYSPASS_AUTO_MIGRATE=yes
 ```
 
 `SYSPASS_DB_NAME`/`USER`/`PASS` sono valori tuoi, non devono combaciare
-con quelli del vecchio server (vedi Passo 1) - il container `syspass-db`
-crea quell'utente e gli concede accesso a quel database in automatico al
-primo avvio (Passo 4), indipendentemente dal dump che importi.
+con quelli del vecchio server (vedi Passo 1). Perché il container
+`syspass-db` crei quell'utente e gli conceda accesso in automatico,
+apri `docker-compose.yml` e **scommenta** questa riga nel servizio
+`syspass-db` (è commentata di default, serve solo per una migrazione):
+
+```yaml
+      - ./docker/db-grant-init.sh:/docker-entrypoint-initdb.d/db-grant-init.sh:ro
+```
+
+Senza scommentarla, quell'utente viene comunque creato ma **senza alcun
+permesso reale** - dovresti poi concederglieli a mano (vedi Passo 4).
 
 `SYSPASS_DB_VERSION`/`SYSPASS_APP_VERSION` dicono a sysPass **da dove
 parte** il database che stai per importare, non dove deve arrivare -
@@ -154,11 +163,22 @@ finisce corrotta nel comando eseguito. Usa **virgolette singole**
 attorno alla password (come sopra), oppure heredoc con virgolette singole
 (`<<'SQL' ... SQL`) se stai eseguendo query multi-linea.
 
-`SYSPASS_DB_USER` è già creato e già autorizzato su `SYSPASS_DB_NAME` a
-questo punto (`docker/db-grant-init.sh`, gira in automatico la
-primissima volta che il volume del DB è vuoto, **prima** ancora che tu
-importi il dump) - non devi creare o concedere nulla a mano, né prima né
-dopo l'import, indipendentemente dal dump che stai importando.
+Se hai scommentato la riga del Passo 3, `SYSPASS_DB_USER` è già creato e
+già autorizzato su `SYSPASS_DB_NAME` a questo punto (gira in automatico
+la primissima volta che il volume del DB è vuoto, **prima** ancora che
+tu importi il dump) - non devi creare o concedere nulla a mano, né prima
+né dopo l'import.
+
+Se invece non l'hai scommentata (o te ne sei accorto solo ora, a volume
+già inizializzato - in quel caso scommentarla ora non serve più a
+niente, gira solo su un volume vuoto), crealo a mano:
+
+```bash
+docker exec -it syspass-db mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' -e "
+CREATE USER IF NOT EXISTS '<dbUser>'@'%' IDENTIFIED BY '<dbPass>';
+GRANT ALL PRIVILEGES ON \`<dbName>\`.* TO '<dbUser>'@'%';
+FLUSH PRIVILEGES;"
+```
 
 Se il `%` (qualsiasi host) non viene abbinato in modo affidabile sulla
 tua rete Docker (caso raro), dai al container `app` un IP statico su una
@@ -267,8 +287,10 @@ schema-only) - ora è corretto in automatico a ogni avvio del container,
 vedi README "Automatic fix for views with a stale DEFINER". Se lo vedi
 comunque, controlla `docker compose logs app | grep fix-view-security`:
 se dice `failed on <nome-view>`, il DB user configurato non ha i permessi
-`CREATE VIEW`/`DROP` sul proprio schema (dovrebbe averli sempre con
-`GRANT ALL PRIVILEGES ON` come da Passo 4).
+`CREATE VIEW`/`DROP` sul proprio schema - probabilmente non hai
+scommentato la riga del Passo 3/4, o l'hai scommentata dopo che il
+volume del DB era già inizializzato (in quel caso va concesso a mano,
+vedi Passo 4).
 
 **Nei log vedo `fix-view-security: could not connect (...), skipping.`**
 Normale e innocuo se capita solo al primissimo avvio (il DB può metterci

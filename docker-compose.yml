@@ -57,6 +57,8 @@ services:
       # access to it either way, without pre-creating it.
       - MYSQL_USER=${SYSPASS_DB_USER}
       - MYSQL_PASSWORD=${SYSPASS_DB_PASS}
+      # Only read by docker/db-grant-init.sh below - harmless to leave
+      # set even with that line commented out.
       - SYSPASS_DB_NAME=${SYSPASS_DB_NAME}
     ports:
       - "3306"
@@ -67,14 +69,24 @@ services:
       # where the data lives on disk. They happen to read the same here,
       # which is fine, not a conflict.
       - syspass-db:/var/lib/mysql
-      # Grants MYSQL_USER access to SYSPASS_DB_NAME without pre-creating
-      # it (see the comment above and docker/db-grant-init.sh itself) -
-      # MYSQL_USER/MYSQL_PASSWORD alone only get real privileges when
-      # MYSQL_DATABASE is also set, which we can't do here. Only runs
-      # once, the first time this volume is empty (mariadb's own
-      # docker-entrypoint-initdb.d convention) - has no effect on an
-      # already-initialized volume.
-      - ./docker/db-grant-init.sh:/docker-entrypoint-initdb.d/db-grant-init.sh:ro
+      # OPTIONAL, commented out by default - uncomment for a MIGRATION
+      # (see MIGRATION.md), leave commented for a fresh install via the
+      # wizard.
+      #
+      # Without MYSQL_DATABASE set above, MYSQL_USER/MYSQL_PASSWORD alone
+      # create this DB user with GRANT USAGE only - no real access to
+      # anything - until something else grants it properly. The install
+      # wizard does that itself for a fresh install (it creates its own
+      # separate sp_<hex> user, ignoring SYSPASS_DB_USER entirely), so
+      # this isn't needed there. A migration, though, skips the wizard
+      # and uses SYSPASS_DB_USER/NAME directly (see MIGRATION.md) - here
+      # this line grants that exact user access to that exact database,
+      # even before the schema exists (so it doesn't reintroduce "the
+      # database already exists" either). Only runs once, the first time
+      # this volume is empty (mariadb's own docker-entrypoint-initdb.d
+      # convention) - has no effect on an already-initialized volume, so
+      # it's safe to leave uncommented afterwards too.
+      # - ./docker/db-grant-init.sh:/docker-entrypoint-initdb.d/db-grant-init.sh:ro
 
   # Cleartext password export for the disaster-recovery safe copy (see
   # scripts/password-export/README.md). Part of this same stack so it's
