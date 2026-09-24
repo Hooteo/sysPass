@@ -61,19 +61,31 @@ Segnati tutti e sette i valori. In particolare:
   (es. `310.19042701`). Serve al nuovo sysPass per sapere da dove
   applicare gli aggiornamenti di schema mancanti (vedi Passo 5).
 
-## Passo 2 - Backup completo del vecchio database
+## Passo 2 - Backup del vecchio database
 
 ```bash
-mysqldump -u<vecchio-root-user> -p'<vecchia-root-pass>' --all-databases > syspass-backup-$(date +%F).sql
+mysqldump -u<vecchio-root-user> -p'<vecchia-root-pass>' <nome-schema-syspass> > syspass-backup-$(date +%F).sql
 ```
 
-**Usa sempre `--all-databases`, non solo il nome dello schema sysPass.**
-Un dump del solo schema (`mysqldump nome_db`) copia le tabelle ma NON gli
-utenti/permessi MySQL - è esattamente l'errore che genera poi
-`Access denied for user` quando provi ad accedere col vecchio utente sul
-nuovo database, e ti costringe a ricrearlo a mano (possibile, ma è un
-passaggio in più ed è facile sbagliare la sintassi del `GRANT`, vedi
-sotto).
+**Usa il nome dello schema, NON `--all-databases`.** `--all-databases`
+dumpa e poi *sovrascrive* anche lo schema di sistema `mysql` (utenti,
+permessi, e sì, anche la password di `root`) - importato su un'istanza
+nuova che ha già il proprio `root`/DB user creati da `.env`
+(`SYSPASS_DB_ROOT_PASS`/`SYSPASS_DB_USER`/`SYSPASS_DB_PASS`), rischi di
+ritrovarti con la password di `root` del *vecchio* server e di perdere
+l'accesso con quella nuova che avevi appena impostato.
+
+Un dump del solo schema copia le tabelle ma non gli utenti/permessi MySQL
+del vecchio server - va benissimo così: l'utente/permessi che ti servono
+sul nuovo server sono già quelli creati da `.env` al primo avvio del
+container `syspass-db` (Passo 4), non serve ricrearli.
+
+L'unico effetto collaterale di un dump schema-only è che due view interne
+di sysPass (`account_search_v`/`account_data_v`) portano con sé un
+riferimento (`DEFINER`) a un utente MySQL che esisteva solo sul vecchio
+server - **questo fork lo corregge da solo automaticamente all'avvio**
+(vedi README, "Automatic fix for views with a stale DEFINER"), non serve
+fare nulla di manuale.
 
 Fai anche una copia del vecchio `config.xml`, non solo il dump:
 
@@ -136,10 +148,11 @@ attorno alla password (come sopra), oppure heredoc con virgolette singole
 
 Le variabili `MYSQL_DATABASE`/`MYSQL_USER`/`MYSQL_PASSWORD` (derivate da
 `SYSPASS_DB_NAME`/`USER`/`PASS`) vengono applicate dall'immagine MariaDB
-**solo la primissima volta** che il suo volume dati è vuoto. Se hai usato
-`--all-databases` al Passo 2, l'utente e i permessi sono già dentro il
-dump e non devi fare nient'altro. Se invece per qualche motivo l'utente
-non c'è (dump parziale), crealo a mano:
+**solo la primissima volta** che il suo volume dati è vuoto - quindi con
+un dump schema-only (Passo 2) l'utente/permessi sono già lì, creati dal
+container stesso prima ancora che tu importi il dump, e non devi fare
+nient'altro. Se per qualche motivo l'utente non c'è (es. hai riusato un
+volume non vuoto), crealo a mano:
 
 ```bash
 docker exec -it syspass-db mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' -e "
@@ -257,6 +270,17 @@ Normale se il vecchio server non aveva ancora queste funzionalità -
 solo al primo avvio. Controlla i log come indicato sopra; se dicono `no
 upgrade needed` ma le tabelle mancano davvero, il problema è a monte
 (versione letta male), non nell'auto-migrate stesso.
+
+**Login funziona, ma la ricerca account o la visualizzazione password
+danno `Access denied for user '...'@'...' (using password: YES)`.**
+Prima di questo fork era un problema reale (view interne con `DEFINER`
+puntato a un utente del vecchio server, non copiato da un dump
+schema-only) - ora è corretto in automatico a ogni avvio del container,
+vedi README "Automatic fix for views with a stale DEFINER". Se lo vedi
+comunque, controlla `docker compose logs app | grep fix-view-security`:
+se dice `failed on <nome-view>`, il DB user configurato non ha i permessi
+`CREATE VIEW`/`DROP` sul proprio schema (dovrebbe averli sempre con
+`GRANT ALL PRIVILEGES ON` come da Passo 4).
 
 **Un link pubblico vecchio non funziona più dopo la migrazione.**
 `passwordSalt` non è stato copiato identico. Non c'è modo di

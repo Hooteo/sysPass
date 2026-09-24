@@ -81,6 +81,15 @@ auto_migrate() {
     done
 }
 
+# Fix any view left with SQL SECURITY DEFINER pointing at a definer
+# account that doesn't exist on this server (typical after a schema-only
+# import from an old instance - see docker/fix-view-security.php). Doesn't
+# need Apache, only a reachable DB, so it runs independently of
+# SYSPASS_AUTO_MIGRATE below.
+if [ -f "${APP_ROOT}/app/config/config.xml" ]; then
+    php "${APP_ROOT}/docker/fix-view-security.php" || echo "fix-view-security: failed, continuing normal boot"
+fi
+
 if [ "${SYSPASS_AUTO_MIGRATE:-yes}" = "yes" ] && [ -f "${APP_ROOT}/app/config/config.xml" ]; then
     auto_migrate || echo "Auto-migrate: failed, continuing normal boot (the app will fall back to the manual upgrade screen)"
 fi
