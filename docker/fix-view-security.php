@@ -53,15 +53,31 @@ if (!$dbHost || !$dbName || !$dbUser) {
     exit(0);
 }
 
-try {
-    $pdo = new PDO(
-        "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8",
-        $dbUser,
-        $dbPass,
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]
-    );
-} catch (Throwable $e) {
-    fwrite(STDERR, 'fix-view-security: could not connect (' . $e->getMessage() . "), skipping.\n");
+// This runs at the very start of boot, before the app itself has any
+// retry logic - on a fresh "docker compose up"/stack redeploy the DB
+// container can easily still be initializing when this fires, so a
+// single connection attempt would just fail with "Connection refused"
+// and silently skip the fix. Retry like auto_migrate() does for Apache.
+$pdo = null;
+$lastError = null;
+
+for ($tries = 0; $tries < 30; $tries++) {
+    try {
+        $pdo = new PDO(
+            "mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8",
+            $dbUser,
+            $dbPass,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]
+        );
+        break;
+    } catch (Throwable $e) {
+        $lastError = $e;
+        sleep(1);
+    }
+}
+
+if ($pdo === null) {
+    fwrite(STDERR, 'fix-view-security: could not connect (' . $lastError->getMessage() . "), skipping.\n");
     exit(0);
 }
 
