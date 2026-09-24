@@ -326,6 +326,18 @@ Solo dopo aver spuntato tutta la lista, ripeti la procedura
 sull'istanza di produzione reale (se questo era un test), oppure
 considera la migrazione conclusa.
 
+**Posso togliere `SYSPASS_DB_VERSION`/`SYSPASS_APP_VERSION` (e le altre
+variabili di questo tipo) dallo stack ora che la migrazione è andata?**
+Sì - vengono lette **solo** la primissima volta che `config.xml` non
+esiste ancora. Una volta creato/aggiornato (cosa già avvenuta se sei
+arrivato fin qui), le variabili d'ambiente vengono ignorate a ogni
+riavvio successivo, `SYSPASS_AUTO_MIGRATE` a parte (quella è l'unica
+riletta a ogni boot). L'unica cautela: se in futuro cancelli di nuovo il
+volume `syspass-config` per qualche motivo, senza `SYSPASS_DB_VERSION`
+l'app tornerebbe al wizard invece che al percorso "migrazione" - se
+pensi possa ricapitare, non c'è danno a lasciarle nello stack anche da
+inutilizzate.
+
 ## Piano B: qualcosa è andato storto
 
 Il vantaggio di non aver mai toccato il vecchio server: puoi sempre
