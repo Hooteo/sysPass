@@ -222,18 +222,30 @@ di importare il dump. Vai in due passaggi:
 docker compose up -d syspass-db
 ```
 
-Aspetta qualche secondo che MariaDB finisca di inizializzarsi, poi
-importa il dump **nel container di destinazione** (nome del container
-nuovo, non quello sorgente del Passo 2):
+Aspetta qualche secondo che MariaDB finisca di inizializzarsi.
+
+⚠️ **Crea prima lo schema vuoto - `mysql <nome-database> < dump.sql`
+NON lo crea da solo.** `docker-compose.yml` non imposta apposta
+`MYSQL_DATABASE` (vedi Passo 3), quindi sul container nuovo non esiste
+ancora nessun database chiamato `syspass` - un `mysqldump` schema-only
+(Passo 2) non contiene `CREATE DATABASE`, e il client `mysql` fa
+comunque un `USE <nome-database>` implicito prima di eseguire il dump,
+che fallisce con `ERROR 1049 (42000): Unknown database` se lo schema
+non esiste ancora. Va creato (vuoto) come primo passo, separato:
+
+```bash
+docker exec <container-db-destinazione> mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' -e "CREATE DATABASE IF NOT EXISTS <nome-database>;"
+```
+
+Poi importa il dump **nel container di destinazione** (nome del
+container nuovo, non quello sorgente del Passo 2):
 
 ```bash
 docker exec -i <container-db-destinazione> mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' <nome-database> < syspass-backup-YYYY-MM-DD.sql
 ```
 
-`<nome-database>` è lo stesso valore che hai messo in `SYSPASS_DB_NAME`
-al Passo 3 (es. `syspass`) - il dump del Passo 2 non contiene un
-`CREATE DATABASE`/`USE` (dato che non hai usato `--databases`), quindi
-va specificato qui sulla riga di comando, non è opzionale.
+`<nome-database>` (in entrambi i comandi) è lo stesso valore che hai
+messo in `SYSPASS_DB_NAME` al Passo 3 (es. `syspass`).
 
 ⚠️ **`-i`, non `-it`.** Con `-it` (TTY interattivo) l'input da file/pipe
 fallisce con `the input device is not a TTY`. Serve `-i` da solo quando
@@ -369,6 +381,12 @@ durante l'import del dump. Di solito è uno di questi due problemi:
   comando fallisce ancora prima di arrivare a MySQL).
 - La password contiene caratteri speciali (es. `!`) e non è tra
   virgolette singole.
+
+**`ERROR 1049 (42000): Unknown database '<nome>'`** durante l'import del
+dump. Non hai creato lo schema vuoto prima (vedi Passo 4) - questo fork
+non imposta `MYSQL_DATABASE` di proposito, quindi nessun database esiste
+finché non lo crei tu con `CREATE DATABASE IF NOT EXISTS <nome>;` prima
+di importare il dump sopra.
 
 **Ho importato il vecchio dump ma sysPass dice che il database non ha
 alcune colonne/tabelle che mi aspettavo (es. OTP, MFA).**
