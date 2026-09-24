@@ -51,11 +51,13 @@ services:
       # the mariadb image pre-create an empty schema with this name on
       # first boot - which then makes a FRESH install's own installer
       # wizard refuse with "The database already exists", since it
-      # insists on creating that schema itself. Not needed for a
-      # migration either: the schema comes from the dump you import (see
-      # MIGRATION.md), before the app ever starts.
+      # insists on creating that schema itself. The schema itself comes
+      # either from the install wizard or from the dump you import (see
+      # MIGRATION.md) - docker/db-grant-init.sh below grants this user
+      # access to it either way, without pre-creating it.
       - MYSQL_USER=${SYSPASS_DB_USER}
       - MYSQL_PASSWORD=${SYSPASS_DB_PASS}
+      - SYSPASS_DB_NAME=${SYSPASS_DB_NAME}
     ports:
       - "3306"
     volumes:
@@ -65,6 +67,14 @@ services:
       # where the data lives on disk. They happen to read the same here,
       # which is fine, not a conflict.
       - syspass-db:/var/lib/mysql
+      # Grants MYSQL_USER access to SYSPASS_DB_NAME without pre-creating
+      # it (see the comment above and docker/db-grant-init.sh itself) -
+      # MYSQL_USER/MYSQL_PASSWORD alone only get real privileges when
+      # MYSQL_DATABASE is also set, which we can't do here. Only runs
+      # once, the first time this volume is empty (mariadb's own
+      # docker-entrypoint-initdb.d convention) - has no effect on an
+      # already-initialized volume.
+      - ./docker/db-grant-init.sh:/docker-entrypoint-initdb.d/db-grant-init.sh:ro
 
   # Cleartext password export for the disaster-recovery safe copy (see
   # scripts/password-export/README.md). Part of this same stack so it's

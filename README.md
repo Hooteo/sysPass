@@ -52,6 +52,16 @@ PHP web based Password Manager for business and personal use.
   MySQL/MariaDB deny access to the real, correctly-privileged DB user on
   every account search or password view, with an error that looks
   exactly like a wrong DB password/grant but isn't one.
+- The `syspass-db` service now grants `SYSPASS_DB_USER` access to
+  `SYSPASS_DB_NAME` itself on first boot (`docker/db-grant-init.sh`),
+  without pre-creating that database. Previously, `MYSQL_USER`/
+  `MYSQL_PASSWORD` alone (the mariadb image's own mechanism) only grant
+  real privileges when `MYSQL_DATABASE` is also set - which this stack
+  deliberately never sets (see "Fresh install" above) - so that DB user
+  was created with no actual access to anything, silently, until you
+  granted it by hand. This is also what makes `SYSPASS_DB_NAME`/`USER`/
+  `PASS` safe to pick freely during a migration instead of having to
+  match the old server's values.
 
 ## Running with Docker
 
@@ -72,13 +82,24 @@ except `SYSPASS_AUTO_MIGRATE` are read **only the first time** the app
 finds an empty `app/config` volume (no `config.xml` yet) - editing `.env`
 later and restarting does nothing to an already-installed instance.
 
+`SYSPASS_DB_NAME`/`USER`/`PASS` are pick-your-own values in **both**
+scenarios below, including migration - they do not need to match
+anything from an old server. The `syspass-db` service grants that exact
+user access to that exact database name on first boot
+(`docker/db-grant-init.sh`), before the schema itself exists yet, so it
+doesn't matter whether the schema then comes from the install wizard or
+from an imported dump - and a schema-only dump (the recommended way to
+migrate, see `MIGRATION.md`) never carries the old server's MySQL users
+in the first place, so there'd be nothing to "match" even if you wanted
+to.
+
 ### Fresh install (nothing to import)
 
 | Variable | What to put |
 |---|---|
-| `SYSPASS_PASSWORD_SALT` | Leave empty (auto-generated), or `openssl rand -hex 32` |
-| `SYSPASS_DB_HOST/PORT/ROOT_PASS` | Anything you like |
-| `SYSPASS_DB_NAME/USER/PASS` | Anything you like, but don't actually end up used - see below |
+| `SYSPASS_DB_ROOT_PASS` | Anything you like |
+| `SYSPASS_PASSWORD_SALT` | Leave empty (auto-generated), or set it yourself with `openssl rand -hex 32` so you have a saved copy for a future migration |
+| `SYSPASS_DB_NAME/USER/PASS` | Anything you like - see note above. Not actually used by the install wizard itself (below), only the grant matters here |
 | `SYSPASS_DB_VERSION` / `SYSPASS_APP_VERSION` | **Leave both empty.** This is what makes the install wizard run |
 | `SYSPASS_AUTO_MIGRATE` | Leave as `yes` (default) - nothing to migrate yet, but no reason to turn it off |
 | `SYSPASS_APPLICATION_URL` | Leave empty (see below) |
@@ -98,14 +119,15 @@ finds one already there, even an empty one.
 
 | Variable | What to put |
 |---|---|
-| `SYSPASS_PASSWORD_SALT` | The **old** instance's `<passwordSalt>`, verbatim - get this wrong and every public/deep link generated before the migration breaks |
-| `SYSPASS_DB_NAME` / `USER` / `PASS` | The **old** instance's exact `<dbName>`/`<dbUser>`/`<dbPass>` - not values of your choosing. `dbUser` in particular was very likely auto-generated (`sp_<hex>`), not `syspass` |
 | `SYSPASS_DB_ROOT_PASS` | A **new** password of your choosing, for the fresh MariaDB volume you're restoring into |
+| `SYSPASS_PASSWORD_SALT` | The **old** instance's `<passwordSalt>`, verbatim - get this wrong and every public/deep link generated before the migration breaks |
+| `SYSPASS_DB_NAME` / `USER` / `PASS` | Anything you like - see note above. Written straight into the new `config.xml` |
 | `SYSPASS_DB_VERSION` / `SYSPASS_APP_VERSION` | The **old** instance's exact `<databaseVersion>`/`<appVersion>` - this is what tells sysPass there's already a populated database, skipping the install wizard |
 | `SYSPASS_AUTO_MIGRATE` | Leave as `yes` (default) - this is what brings the imported, older-schema database up to date (OTP/MFA tables etc.) automatically on first boot |
 | `SYSPASS_APPLICATION_URL` | Leave empty unless you have a specific reason not to (see below) |
 
-All five values above the line come from the old instance's own
+Only `SYSPASS_PASSWORD_SALT`, `SYSPASS_DB_VERSION` and
+`SYSPASS_APP_VERSION` actually need to come from the old instance's
 `app/config/config.xml` - see `MIGRATION.md` for the exact
 `grep`/restore commands.
 
@@ -188,8 +210,13 @@ above.
 **1. Read the values you'll need out of the old config.xml:**
 
 ```bash
-grep -E "passwordSalt|dbUser|dbPass|dbName|databaseVersion|appVersion|configVersion" config.xml.old
+grep -E "passwordSalt|databaseVersion|appVersion" config.xml.old
 ```
+
+That's it - `dbUser`/`dbPass`/`dbName` from the old server are **not**
+needed (see the note under "Environment variables" above: a schema-only
+dump never carries MySQL users, so there's nothing there to match, and
+`SYSPASS_DB_NAME`/`USER`/`PASS` below can be anything you like).
 
 **2. On the new host, set up `.env`:**
 
@@ -197,13 +224,12 @@ grep -E "passwordSalt|dbUser|dbPass|dbName|databaseVersion|appVersion|configVers
 cp .env.example .env
 ```
 
-Fill in, from step 1's output:
+Fill in:
 - `SYSPASS_PASSWORD_SALT` = old `<passwordSalt>`, verbatim - this is the one that keeps links working
-- `SYSPASS_DB_USER` / `SYSPASS_DB_PASS` = old `<dbUser>` / `<dbPass>`
-- `SYSPASS_DB_NAME` = old `<dbName>`
 - `SYSPASS_DB_VERSION` = old `<databaseVersion>`
 - `SYSPASS_APP_VERSION` = old `<appVersion>`
 - `SYSPASS_DB_ROOT_PASS` = any new root password for the fresh MariaDB volume
+- `SYSPASS_DB_NAME`/`USER`/`PASS` = any values of your choosing
 
 **3. Start only the database, restore the dump:**
 
@@ -213,23 +239,10 @@ docker compose up -d syspass-db
 docker exec -i syspass-db mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' < syspass-backup-YYYY-MM-DD.sql
 ```
 
-`MYSQL_DATABASE`/`MYSQL_USER`/`MYSQL_PASSWORD` (driven by
-`SYSPASS_DB_NAME`/`USER`/`PASS`) are only applied by the `mariadb` image
-the *first* time its volume is empty - with a schema-only dump as above,
-that already creates the DB user you need before you even import the
-dump, nothing more to do. If for some reason it's missing (e.g. you
-reused a non-empty volume), create it manually:
-
-```bash
-docker exec -it syspass-db mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' -e "
-CREATE USER IF NOT EXISTS '<dbUser>'@'%' IDENTIFIED BY '<dbPass>';
-GRANT ALL PRIVILEGES ON \`<dbName>\`.* TO '<dbUser>'@'%';
-FLUSH PRIVILEGES;"
-```
-
-If `'%'` doesn't get matched reliably on your network, see the commented
-static-IP network example at the bottom of `docker-compose.yml` and scope
-the `GRANT` to that fixed IP instead.
+`SYSPASS_DB_USER` is already granted access to `SYSPASS_DB_NAME` at this
+point (`docker/db-grant-init.sh`, runs automatically the first time this
+volume is empty) - nothing to create or grant by hand, before or after
+the import, regardless of whether you used a schema-only dump or not.
 
 **4. Start the app:**
 
@@ -247,10 +260,12 @@ docker compose up -d app
 - Open a public link that was generated *before* the migration and
   confirm it still resolves - this is the real test that `passwordSalt`
   carried over correctly.
-- Check `docker compose logs app` for `Access denied for user` (DB grant
-  issue, see step 3) or repeated `Context not initialized` notices
-  (harmless and self-resolving - happens once while sysPass migrates the
-  `config.xml` format itself, tied to a stale `<configVersion>`).
+- Check `docker compose logs app` for `Access denied for user` - should
+  no longer happen at all (the DB grant is automatic, and any leftover
+  `SQL SECURITY DEFINER` view is fixed on boot, see above) - or repeated
+  `Context not initialized` notices (harmless and self-resolving -
+  happens once while sysPass migrates the `config.xml` format itself,
+  tied to a stale `<configVersion>`).
 
 ## Automatic DB schema upgrades
 

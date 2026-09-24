@@ -49,14 +49,17 @@ Recupera questi valori dal vecchio `config.xml` (di solito dentro
 `app/config/config.xml` dell'installazione vecchia):
 
 ```bash
-grep -E "passwordSalt|dbHost|dbPort|dbName|dbUser|dbPass|databaseVersion|appVersion" config.xml
+grep -E "passwordSalt|databaseVersion|appVersion" config.xml
 ```
 
-Segnati tutti e sette i valori. In particolare:
+Solo tre valori, e basta un dump schema-only (Passo 2) per il resto -
+**non** ti servono `dbHost`/`dbName`/`dbUser`/`dbPass` del vecchio
+server: sul nuovo host scegli tu liberamente nome database/utente/
+password in `.env` (Passo 3), non devono combaciare con niente del
+vecchio server. In particolare:
 
-- `dbUser` - **quasi certamente NON è "syspass"**. Le vecchie installazioni
-  (installer originale) generano di default un nome tipo `sp_a1b2c3d4e5f6`.
-  Usa il valore vero, non uno a piacere.
+- `passwordSalt` - **l'unico valore che non puoi scegliere tu**, va
+  copiato identico (vedi sopra).
 - `databaseVersion` - la versione dello schema del vecchio database
   (es. `310.19042701`). Serve al nuovo sysPass per sapere da dove
   applicare gli aggiornamenti di schema mancanti (vedi Passo 5).
@@ -99,20 +102,25 @@ cp app/config/config.xml ./config.xml.old
 cp .env.example .env
 ```
 
-Compila, usando **esattamente** i valori letti al Passo 1:
+Compila:
 
 ```
-SYSPASS_PASSWORD_SALT=<passwordSalt del vecchio config.xml, verbatim>
+SYSPASS_PASSWORD_SALT=<passwordSalt del vecchio config.xml, verbatim - l'unico valore non a tua scelta>
 SYSPASS_DB_HOST=syspass-db
 SYSPASS_DB_PORT=3306
 SYSPASS_DB_ROOT_PASS=<una password NUOVA a tua scelta, per il volume MariaDB nuovo>
-SYSPASS_DB_NAME=<dbName del vecchio config.xml>
-SYSPASS_DB_USER=<dbUser del vecchio config.xml - quello vero, non "syspass">
-SYSPASS_DB_PASS=<dbPass del vecchio config.xml>
+SYSPASS_DB_NAME=<nome a tua scelta, es. syspass>
+SYSPASS_DB_USER=<utente a tua scelta, es. syspass>
+SYSPASS_DB_PASS=<password a tua scelta>
 SYSPASS_DB_VERSION=<databaseVersion del vecchio config.xml>
 SYSPASS_APP_VERSION=<appVersion del vecchio config.xml>
 SYSPASS_AUTO_MIGRATE=yes
 ```
+
+`SYSPASS_DB_NAME`/`USER`/`PASS` sono valori tuoi, non devono combaciare
+con quelli del vecchio server (vedi Passo 1) - il container `syspass-db`
+crea quell'utente e gli concede accesso a quel database in automatico al
+primo avvio (Passo 4), indipendentemente dal dump che importi.
 
 `SYSPASS_DB_VERSION`/`SYSPASS_APP_VERSION` dicono a sysPass **da dove
 parte** il database che stai per importare, non dove deve arrivare -
@@ -146,29 +154,15 @@ finisce corrotta nel comando eseguito. Usa **virgolette singole**
 attorno alla password (come sopra), oppure heredoc con virgolette singole
 (`<<'SQL' ... SQL`) se stai eseguendo query multi-linea.
 
-Le variabili `MYSQL_DATABASE`/`MYSQL_USER`/`MYSQL_PASSWORD` (derivate da
-`SYSPASS_DB_NAME`/`USER`/`PASS`) vengono applicate dall'immagine MariaDB
-**solo la primissima volta** che il suo volume dati è vuoto - quindi con
-un dump schema-only (Passo 2) l'utente/permessi sono già lì, creati dal
-container stesso prima ancora che tu importi il dump, e non devi fare
-nient'altro. Se per qualche motivo l'utente non c'è (es. hai riusato un
-volume non vuoto), crealo a mano:
-
-```bash
-docker exec -it syspass-db mysql -uroot -p'<SYSPASS_DB_ROOT_PASS>' -e "
-CREATE USER IF NOT EXISTS '<dbUser>'@'%' IDENTIFIED BY '<dbPass>';
-GRANT ALL PRIVILEGES ON \`<dbName>\`.* TO '<dbUser>'@'%';
-FLUSH PRIVILEGES;"
-```
-
-Qui puoi usare `-it` perché è un comando singolo via `-e`, non input da
-file - va bene entrambi i modi finché sei coerente su quando serve `-i`
-(input reindirizzato) e quando no (comando singolo `-e`).
+`SYSPASS_DB_USER` è già creato e già autorizzato su `SYSPASS_DB_NAME` a
+questo punto (`docker/db-grant-init.sh`, gira in automatico la
+primissima volta che il volume del DB è vuoto, **prima** ancora che tu
+importi il dump) - non devi creare o concedere nulla a mano, né prima né
+dopo l'import, indipendentemente dal dump che stai importando.
 
 Se il `%` (qualsiasi host) non viene abbinato in modo affidabile sulla
-tua rete Docker, dai al container `app` un IP statico su una rete dedicata
-(esempio commentato in fondo a `docker-compose.yml`) e scopi il `GRANT` a
-quell'IP fisso invece di `'%'`.
+tua rete Docker (caso raro), dai al container `app` un IP statico su una
+rete dedicata (esempio commentato in fondo a `docker-compose.yml`).
 
 ## Passo 5 - Avviare l'app e lasciare che si aggiorni da sola
 
@@ -257,12 +251,6 @@ durante l'import del dump. Di solito è uno di questi due problemi:
 - La password contiene caratteri speciali (es. `!`) e non è tra
   virgolette singole.
 
-**`ERROR 1133: Can't find any matching row in the user table`**
-durante una `GRANT`/`CREATE USER` manuale. Di solito significa che stai
-provando a fare `GRANT` su un utente che non esiste ancora - usa sempre
-`CREATE USER IF NOT EXISTS ... IDENTIFIED BY ...` PRIMA del `GRANT`, mai
-`GRANT` da solo su un utente non ancora creato.
-
 **Ho importato il vecchio dump ma sysPass dice che il database non ha
 alcune colonne/tabelle che mi aspettavo (es. OTP, MFA).**
 Normale se il vecchio server non aveva ancora queste funzionalità -
@@ -281,6 +269,13 @@ comunque, controlla `docker compose logs app | grep fix-view-security`:
 se dice `failed on <nome-view>`, il DB user configurato non ha i permessi
 `CREATE VIEW`/`DROP` sul proprio schema (dovrebbe averli sempre con
 `GRANT ALL PRIVILEGES ON` come da Passo 4).
+
+**Nei log vedo `fix-view-security: could not connect (...), skipping.`**
+Normale e innocuo se capita solo al primissimo avvio (il DB può metterci
+qualche secondo in più a essere pronto quando app e DB partono insieme
+da zero) - lo script riprova per fino a 30 secondi prima di arrendersi.
+Se lo vedi a ogni riavvio, controlla che `SYSPASS_DB_HOST`/`PORT` in
+`.env` puntino davvero al servizio giusto.
 
 **Un link pubblico vecchio non funziona più dopo la migrazione.**
 `passwordSalt` non è stato copiato identico. Non c'è modo di
