@@ -388,6 +388,25 @@ non imposta `MYSQL_DATABASE` di proposito, quindi nessun database esiste
 finché non lo crei tu con `CREATE DATABASE IF NOT EXISTS <nome>;` prima
 di importare il dump sopra.
 
+**`SQLSTATE[HY000] [1044] Access denied for user '...'@'...' to database
+'...'`** (nei log di `fix-view-security`, o dell'app in generale) - **non
+è lo stesso errore del 1045** ("using password"): qui l'utente esiste e
+la password è giusta, semplicemente non ha alcun permesso su quel
+database. Capita quando riusi un volume `syspass-db` **già
+inizializzato** da un tentativo precedente (stesso utente, magari
+riportato da una prima installazione andata storta) - `db-grant-init.sh`
+(Passo 3/4) gira **solo la primissima volta** che il volume è vuoto,
+quindi su un volume riciclato non scatta più e quell'utente resta senza
+permessi. Concedili a mano, senza `CREATE USER` (l'utente c'è già):
+
+```bash
+docker exec -it <container-db> mysql -uroot -p'<password-root>' -e "
+GRANT ALL PRIVILEGES ON \`<nome-database>\`.* TO '<utente>'@'%';
+FLUSH PRIVILEGES;"
+```
+
+Poi riavvia il container dell'app.
+
 **Ho importato il vecchio dump ma sysPass dice che il database non ha
 alcune colonne/tabelle che mi aspettavo (es. OTP, MFA).**
 Normale se il vecchio server non aveva ancora queste funzionalità -
