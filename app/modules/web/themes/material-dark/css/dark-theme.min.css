@@ -18,10 +18,13 @@
  * for real use, not just a quick glance - reported back as "fa schifo".
  * Body text is now near-white (rgba(255,255,255,.87), the standard
  * Material dark-theme primary-text value - 15.8:1 on #121212, still
- * clears WCAG AAA by a wide margin) and orange is kept only as the
- * ACCENT color - links, hover states, and the drawer's app title - so
- * it still reads as "this app's color" without being the thing you have
- * to read paragraphs of.
+ * clears WCAG AAA by a wide margin).
+ *
+ * Revision 3 (2026-09-25): orange as the link color (--md-link) didn't
+ * land either - links are now the same near-white as body text
+ * (--md-link: var(--md-text)). Orange survives only as --md-accent-warm,
+ * used for hover states and the drawer's app title, not for any text
+ * that sits still on the page.
  */
 
 :root {
@@ -34,7 +37,7 @@
   --md-text: rgba(255, 255, 255, .87);
   --md-text-secondary: rgba(255, 255, 255, .60);
   --md-text-disabled: rgba(255, 255, 255, .38);
-  --md-link: #ffb74d;
+  --md-link: var(--md-text);
   --md-accent: #536dfe;
   --md-accent-warm: #ffa726;
 }
