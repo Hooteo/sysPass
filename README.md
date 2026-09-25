@@ -499,6 +499,36 @@ already named `*.min.css` as needing it - silently dropping its content
 instead of erroring. This is a pre-existing quirk in stock sysPass, not
 something specific to this theme.
 
+**Plain cascade order isn't always enough**, and this bit us more than
+once while getting the theme actually readable (2026-09-25 rewrite) -
+three concrete traps worth knowing before touching this file again:
+
+1. Some Material Blue markup carries a `!important` utility class
+   directly in the HTML (e.g. the top bar's `mdl-color--indigo-400`,
+   or `mdl-color-text--indigo-400` on ~40 different text inputs
+   including the login form itself). Cascade order can't beat
+   `!important` - matching `!important` on the override is the only
+   fix, and it's easy to miss since the color looks fine in the CSS
+   source, only wrong once actually rendered.
+2. A few Material Blue rules use a **compound** selector (`#content
+   #searchbox`, `#content #title` - two IDs, higher specificity) where
+   this theme had a bare `#searchbox`/`#title` - loses regardless of
+   load order. Match the compound selector, not just the bare ID.
+3. Native `<select>` elements can silently ignore `background-color`
+   from author CSS and paint with the platform's own theme instead,
+   browser/OS-dependent - `getComputedStyle` can report the right color
+   while the actual paint is still wrong. `appearance: none` (plus a
+   manual arrow, since that removes the native one) sidesteps this
+   instead of hoping the native widget cooperates. Also check what
+   companion class a `.selectize-control` actually ships with in each
+   form before assuming it's always the same one - this app uses at
+   least two (`form-control` in some places, `select-box` in others).
+
+If a color looks right in the CSS but wrong in the browser, it's almost
+always one of these three, not a cascade-order problem - open dev tools
+and check the *computed* style/specificity winner directly rather than
+re-reading the source.
+
 ## Cleartext password export (disaster recovery)
 
 `scripts/password-export/` has two Python tools that export every

@@ -10,9 +10,18 @@
  * #1e1e1e / #262626 / #2c2c2c), keeping the same indigo accent (#536DFE)
  * and status colors (red/teal/amber/blue) Material Blue already uses,
  * just with translucent dark backgrounds instead of pastel light ones
- * behind them. Body text is warm orange (#ffb74d, Material "Orange
- * 300") instead of the usual near-white, on request - still >8:1
- * contrast against every surface color above, well past WCAG AA.
+ * behind them.
+ *
+ * Revision 2 (2026-09-25): the first pass used warm orange as the BODY
+ * text color everywhere (--md-text). Technically high-contrast, but
+ * orange-on-dark across dense tables/forms/long text is tiring to read
+ * for real use, not just a quick glance - reported back as "fa schifo".
+ * Body text is now near-white (rgba(255,255,255,.87), the standard
+ * Material dark-theme primary-text value - 15.8:1 on #121212, still
+ * clears WCAG AAA by a wide margin) and orange is kept only as the
+ * ACCENT color - links, hover states, and the drawer's app title - so
+ * it still reads as "this app's color" without being the thing you have
+ * to read paragraphs of.
  */
 
 :root {
@@ -22,11 +31,12 @@
   --md-surface-raised: #2c2c2c;
   --md-border: rgba(255, 255, 255, .12);
   --md-border-strong: rgba(255, 255, 255, .24);
-  --md-text: #ffb74d;
-  --md-text-secondary: rgba(255, 183, 77, .75);
-  --md-text-disabled: rgba(255, 183, 77, .38);
-  --md-link: #ffa726;
+  --md-text: rgba(255, 255, 255, .87);
+  --md-text-secondary: rgba(255, 255, 255, .60);
+  --md-text-disabled: rgba(255, 255, 255, .38);
+  --md-link: #ffb74d;
   --md-accent: #536dfe;
+  --md-accent-warm: #ffa726;
 }
 
 /* ==========================================================================
@@ -102,7 +112,8 @@ hr {
 }
 
 .mdl-layout__drawer .mdl-layout-title {
-  color: var(--md-text);
+  color: var(--md-accent-warm);
+  font-weight: 500;
 }
 
 .mdl-layout__drawer .mdl-navigation__link {
@@ -111,7 +122,58 @@ hr {
 
 .mdl-layout__drawer .mdl-navigation__link:hover {
   background-color: var(--md-surface-alt);
+  color: var(--md-accent-warm);
+}
+
+.mdl-layout__drawer .mdl-navigation__link:hover .material-icons {
+  color: var(--md-accent-warm);
+}
+
+/* The "connection not secure" lock icon at the bottom of the drawer
+   uses mdl-color-text--red-900 (#b71c1c, material.min.css, !important)
+   - a very dark red meant for a light background, close to invisible
+   on this theme's dark surfaces. Brighter red, same hue family as the
+   semantic error color used elsewhere in this file. */
+.mdl-layout__drawer .mdl-color-text--red-900 {
+  color: #ef5350 !important;
+}
+
+/* Top bar. Material Blue hardcodes a light blue-grey background right
+   in the markup (fixed-header.inc: class="mdl-layout__header
+   mdl-color--indigo-400") - overridden here to a raised dark surface
+   instead of leaving a bright band sitting on an otherwise dark page.
+   Slightly lighter than the drawer/content (elevation convention: the
+   higher a dark-theme surface sits, the lighter its shade) with a hint
+   of border/shadow to stay visually separate from the content below.
+   !important is required here (unlike almost everywhere else in this
+   file): .mdl-color--indigo-400 itself sets its background-color with
+   !important in material.min.css, which beats plain cascade order
+   regardless of load order - confirmed by inspecting the actual served,
+   concatenated stylesheet (lib/SP/Html/Minify.php bundles every theme
+   CSS file into one response; .mdl-color--indigo-400{background-color:
+   #5c6bc0 !important} is in there ahead of this rule either way). */
+.mdl-layout__header,
+.mdl-layout__header.mdl-color--indigo-400 {
+  background-color: var(--md-surface-raised) !important;
   color: var(--md-text);
+  border-bottom: 1px solid var(--md-border);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}
+
+.mdl-layout__header .mdl-navigation__link,
+.mdl-layout__header .mdl-button--icon {
+  color: var(--md-text-secondary);
+}
+
+.mdl-layout__header .mdl-navigation__link:hover,
+.mdl-layout__header .mdl-button--icon:hover {
+  background-color: rgba(255, 255, 255, .08);
+  color: var(--md-accent-warm);
+}
+
+.mdl-layout__header .mdl-navigation__link:hover .material-icons,
+.mdl-layout__header .mdl-button--icon:hover .material-icons {
+  color: var(--md-accent-warm);
 }
 
 .mdl-menu__item--full-bleed-divider {
@@ -167,9 +229,14 @@ hr {
   color: var(--md-text-secondary);
 }
 
-/* Text fields */
+/* Text fields. Many input fields across ~40 templates (login included)
+   carry a second class, mdl-color-text--indigo-400, matching Material
+   Blue's brand color for typed text - material.min.css sets that with
+   !important, which silently wins over the plain rule below and left
+   what you actually type at ~4.3:1 on dark surfaces (borderline, not
+   the intended near-white). Needs matching !important to override it. */
 .mdl-textfield__input {
-  color: var(--md-text);
+  color: var(--md-text) !important;
   border-bottom-color: var(--md-border-strong);
 }
 
@@ -333,7 +400,13 @@ hr {
   color: var(--md-text-secondary);
 }
 
-#title {
+/* #content #title (compound ID selector, specificity 0,2,0,0) sets a
+   light grey/blue-grey background in styles.min.css - a bare #title
+   here (0,1,0,0) loses on specificity regardless of load order, same
+   class of bug as #searchbox below. Match the compound selector. */
+#content #title,
+#content #title.titleNormal {
+  background-color: var(--md-surface-alt);
   color: var(--md-text);
 }
 
@@ -423,7 +496,11 @@ fieldset.data,
   background-color: var(--md-surface-alt);
 }
 
-#searchbox {
+/* #content #searchbox (0,2,0,0) beats a bare #searchbox (0,1,0,0)
+   regardless of load order - same specificity issue as #title above.
+   Confirmed live: this exact mismatch left the search/filter bar with
+   its original light background on an otherwise dark page. */
+#content #searchbox {
   background-color: var(--md-surface);
   border-color: var(--md-border);
 }
@@ -436,13 +513,25 @@ fieldset.data,
   color: var(--md-text-secondary);
 }
 
-/* Plain native <select> elements (client/category/tags filters etc.) -
-   most get replaced by a selectize dropdown at runtime (already themed
-   above), but this covers any that don't and the moment before JS runs */
+/* Plain native <select> elements (client/category filters, tag pickers
+   before JS enhances them, etc). Confirmed live: background-color alone
+   is not enough here - native select widgets can ignore author CSS for
+   their fill and paint with the platform's own (light) theme regardless
+   of what getComputedStyle reports, browser/OS-dependent and easy to
+   miss just from reading the CSS. appearance:none takes full manual
+   control instead of hoping the native widget cooperates - needs its
+   own arrow indicator since that removes the built-in one. */
 select {
   background-color: var(--md-surface);
   color: var(--md-text);
   border-color: var(--md-border-strong);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='rgba(255,255,255,.6)'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
 }
 
 select option {
@@ -580,6 +669,11 @@ body.login footer, body.logout footer, body.userpassreset footer {
   color: var(--md-text-secondary);
 }
 
+/* #box-pub-noheader #demo-info (0,2,0,0) sets its own border-top/
+   border-bottom color, beating a bare #demo-info (0,1,0,0) for that
+   property - match the compound selector, same fix pattern as
+   #searchbox/#title above. */
+#box-pub-noheader #demo-info,
 #demo-info {
   color: var(--md-text-secondary);
   border-color: var(--md-border);
@@ -614,8 +708,13 @@ body.login footer, body.logout footer, body.userpassreset footer {
    Third-party widgets
    ========================================================================== */
 
-/* selectize (tag inputs) */
-.selectize-control.form-control .selectize-input {
+/* selectize (client/category/tags pickers etc). Confirmed live: this
+   widget is instantiated with different companion classes in different
+   forms - "selectize-control form-control" in some, "selectize-control
+   select-box" in others (account create/edit) - the .form-control
+   qualifier alone silently missed the second kind. Match the base
+   .selectize-control class only, no companion class required. */
+.selectize-control .selectize-input {
   background-color: var(--md-surface) !important;
   color: var(--md-text) !important;
   border-color: var(--md-border-strong) !important;
