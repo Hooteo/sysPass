@@ -437,8 +437,13 @@ Authentication" tab shows a QR code to scan with your authenticator app
 over the network to produce it), plus the same secret as text underneath
 for devices that can't scan. Enter the 6-digit code it produces plus your
 current password to confirm and enable it - the password confirmation is
-required by the encryption scheme above, not
-just a safety check.
+required by the encryption scheme above, not just a safety check, and is
+verified against your actual account password before anything is saved
+(`UserMfaController::saveAction()`). A typo here isn't just annoying -
+before this check existed, it silently enrolled you anyway, encrypted
+with a key nobody could ever reproduce at your next login: no code would
+ever verify, forever, until an administrator reset it for you (see
+"Losing access" below) - reproduced and fixed live, 2026-09-28.
 
 ### "Remember this browser"
 

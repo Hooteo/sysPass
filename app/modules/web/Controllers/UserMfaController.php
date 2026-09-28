@@ -26,6 +26,7 @@ namespace SP\Modules\Web\Controllers;
 use DI\DependencyException;
 use DI\NotFoundException;
 use Exception;
+use SP\Core\Crypt\Hash;
 use SP\Core\Exceptions\SessionTimeout;
 use SP\Http\JsonResponse;
 use SP\Modules\Web\Controllers\Traits\JsonTrait;
@@ -67,6 +68,25 @@ final class UserMfaController extends SimpleControllerBase
 
             if (empty($userPass) || empty($secret) || empty($code)) {
                 return $this->returnJsonResponse(JsonResponse::JSON_ERROR, __u('All fields are required'));
+            }
+
+            // The secret gets encrypted with a key derived from whatever is
+            // typed in this field (UserMfaService::enable() ->
+            // makeKeyForUser()) - nothing downstream ever checks it's
+            // actually this user's real password. A typo here previously
+            // enrolled "successfully" anyway, encrypted with a key nobody
+            // can ever reproduce at login - the user finds out only on
+            // their next sign-in, permanently stuck on the 2FA code step
+            // (decryption fails before any code could ever match, no
+            // matter how many they try) until an administrator resets it.
+            // Verify it against this session's own known-correct password
+            // hash before going any further, same check the login form
+            // itself uses (SP\Providers\Auth\Database\Database).
+            if (!Hash::checkHashKey($userPass, $userData->getPass())) {
+                return $this->returnJsonResponse(
+                    JsonResponse::JSON_ERROR,
+                    __u('Wrong password - this must be your current login password, or 2FA will be enrolled with a code nobody can verify later')
+                );
             }
 
             if (!UserMfaService::codeMatchesSecret($secret, $code)) {
