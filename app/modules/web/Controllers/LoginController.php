@@ -92,7 +92,23 @@ final class LoginController extends ControllerBase
 
             $this->eventDispatcher->notifyEvent('exception', new Event($e));
 
-            return $this->returnJsonResponse($e->getCode(), $e->getMessage());
+            // Fork fix: this path is only ever reached for a FAILED login
+            // (a successful one returns above, never throws) - but PHP
+            // exceptions default to code 0 when the thrower didn't set one
+            // explicitly, which collides with JsonResponse::JSON_SUCCESS.
+            // The frontend (app-actions.js, main.login) treats status 0 as
+            // "login succeeded, redirect to json.data.url" - with no 'url'
+            // in this error response, that reads location.replace(undefined)
+            // and the browser navigates to "<host>/undefined" (reproduced
+            // and confirmed live - a Defuse\Crypto\Exception\CryptoException
+            // from a corrupted/mismatched MFA secret was the trigger, but
+            // any exception thrown here without an explicit code hits the
+            // same collision). Every deliberate status code used elsewhere
+            // in this class's login flow (STATUS_INVALID_LOGIN and up) is
+            // non-zero, so falling back to JSON_ERROR here is always safe.
+            $status = $e->getCode() ?: \SP\Http\JsonResponse::JSON_ERROR;
+
+            return $this->returnJsonResponse($status, $e->getMessage());
         }
     }
 

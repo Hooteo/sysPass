@@ -297,12 +297,32 @@ final class LoginService extends Service
             );
         }
 
-        $verified = $this->userMfaService->verifyCode(
-            $userId,
-            $userLoginResponse->getLogin(),
-            $this->userLoginData->getLoginPass(),
-            $code
-        );
+        try {
+            $verified = $this->userMfaService->verifyCode(
+                $userId,
+                $userLoginResponse->getLogin(),
+                $this->userLoginData->getLoginPass(),
+                $code
+            );
+        } catch (CryptoException $e) {
+            // The stored secret can't be decrypted with a key derived from
+            // this login password - happens when the password changed after
+            // enrollment through a path that didn't re-key it (an admin
+            // reset, or - as reproduced live - a user enrolling on one
+            // instance/password and later authenticating against a
+            // different one, eg. after a data migration). Retrying with a
+            // different code can never succeed here (decryption fails
+            // before the code is even checked), but there's no way to tell
+            // that apart from a wrong code without leaking why - same
+            // outward behavior (and same attempt tracking) as one.
+            //
+            // Left uncaught, this exception's default code (0) collides
+            // with JsonResponse::JSON_SUCCESS and LoginController ends up
+            // returning a "successful login" with no redirect URL - the
+            // browser then navigates to "<host>/undefined" (reproduced and
+            // confirmed live, see PR/commit message for the full trace).
+            $verified = false;
+        }
 
         if ($verified === false) {
             $this->addMfaTracking();
@@ -457,12 +477,29 @@ final class LoginService extends Service
                 // (if any) was last encrypted with the old one - transparently
                 // re-key it with the new password now, while both are known.
                 // No-ops if the user has no MFA secret configured.
-                $this->userMfaService->rekeyOnPasswordChange(
-                    $this->userLoginData->getUserLoginResponse()->getId(),
-                    $this->userLoginData->getUserLoginResponse()->getLogin(),
-                    $oldPass,
-                    $this->userLoginData->getLoginPass()
-                );
+                try {
+                    $this->userMfaService->rekeyOnPasswordChange(
+                        $this->userLoginData->getUserLoginResponse()->getId(),
+                        $this->userLoginData->getUserLoginResponse()->getLogin(),
+                        $oldPass,
+                        $this->userLoginData->getLoginPass()
+                    );
+                } catch (CryptoException $e) {
+                    // The "old" password given here doesn't actually match
+                    // the key the stored secret was last encrypted with
+                    // (eg. it changed some other way in between, without
+                    // going through this rekey - an admin reset, or
+                    // enrolling against a different password than the one
+                    // now in use after a data migration). Same collision
+                    // risk as checkMfa() below if left uncaught (this
+                    // exception's default code 0 reads as a successful
+                    // login to the caller) - here there's nothing sensible
+                    // to retry, so just leave the secret un-rekeyed rather
+                    // than fail the whole login: the user keeps this
+                    // session, and checkMfa()'s own handling covers their
+                    // next login attempt (reads as "wrong code" until an
+                    // administrator resets their 2FA).
+                }
 
                 $this->eventDispatcher->notifyEvent(
                     'login.masterPass',

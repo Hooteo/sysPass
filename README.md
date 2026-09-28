@@ -460,6 +460,18 @@ The same can be done directly in the database if needed:
 DELETE FROM UserMfa WHERE userId = <id>;
 ```
 
+**What a user actually sees if their secret becomes undecryptable**
+(admin reset, or - reproduced live, see `lib/SP/Services/Auth/LoginService.php` -
+enrolling against one password/instance and later authenticating against a
+different one, eg. after a data migration): entering a code just shows
+"Wrong two-factor authentication code", indistinguishable from a plain
+typo, no matter how many times they retry with a fresh one - there's no
+way to tell the two apart from the outside without revealing *why*
+decryption failed. If several users report the same account being
+permanently "stuck" on the 2FA step, that's the signal it's this, not a
+typo streak - delete their `UserMfa` row (above) rather than asking them
+to keep retrying.
+
 ## Dark theme
 
 A second theme, "Material Dark", lives alongside the stock "Material
