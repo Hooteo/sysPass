@@ -60,6 +60,7 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-di
 
 COPY docker/000-default.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/default-ssl.conf /etc/apache2/sites-available/default-ssl.conf
+COPY docker/php-session.ini /usr/local/etc/php/conf.d/zz-syspass-session.ini
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh

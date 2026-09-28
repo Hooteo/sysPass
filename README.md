@@ -64,6 +64,16 @@ PHP web based Password Manager for business and personal use.
   `SYSPASS_DB_NAME`/`USER`/`PASS` safe to pick freely during a migration
   instead of having to match the old server's values, as long as this
   line is uncommented.
+- Fixed sporadic early logouts regardless of the configured
+  "Session timeout" (Configuration > General): the stock image's PHP
+  defaults `session.gc_maxlifetime` to 1440s (24 min), and the app's own
+  attempt to raise it per-request (`ini_set()` in `Init.php`) never
+  actually takes effect on later requests in PHP's shared-nothing model
+  - PHP's garbage collector could delete a still-valid session before
+  sysPass's own, longer configured timeout ever kicked in. Set to a
+  generous 24h in `docker/php-session.ini` so PHP's GC is never the
+  actual limiting factor - the app's own configured timeout is what
+  decides now, as intended.
 
 ## Running with Docker
 
