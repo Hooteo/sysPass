@@ -427,7 +427,7 @@ VALUES (1, 'text', 'Text'),
        (10, 'textarea', 'Text Area'),
        (11, 'otp', 'OTP Code');
 INSERT INTO CustomFieldDefinition (name, moduleId, required, help, showInList, typeId, isEncrypted)
-VALUES ('OTP', 1, 0, 'TOTP secret used to generate a login code for this account', 0, 11, 1);
+VALUES ('OTP', 1, 0, 'TOTP secret used to generate a login code for this account. Click the eye icon to reveal it in plain text (the same format an authenticator app calls "enter code manually") - useful to also set this same code up on another device or app.', 0, 11, 1);
 DROP TABLE IF EXISTS `Notification`;
 /*!40101 SET @saved_cs_client = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
