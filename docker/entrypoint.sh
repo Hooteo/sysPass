@@ -99,7 +99,34 @@ auto_migrate() {
 
     curl -sk -o /dev/null "http://127.0.0.1/index.php?r=upgrade/index"
 
-    upgradeKey=$(sed -n 's:.*<upgradeKey>\(.*\)</upgradeKey>.*:\1:p' "${APP_ROOT}/app/config/config.xml")
+    # That request is what writes a fresh <upgradeKey> into config.xml
+    # when an upgrade is actually pending (Init::checkUpgrade(), inside
+    # the same PHP request curl just made - this route renders its own
+    # page directly (HTTP 200) whether or not a key was generated, so
+    # the response itself carries no reliable signal; config.xml is the
+    # only place to check). But curl returning doesn't guarantee that
+    # write has landed on disk yet as far as a separate read from this
+    # shell script is concerned (bind-mount/overlay write-back can lag a
+    # beat behind the response completing). Reading config.xml
+    # immediately afterwards can catch it mid-write and see the
+    # still-empty key from before, which used to make this function
+    # wrongly conclude "no upgrade needed" and skip applying it entirely
+    # - every real request after that then correctly redirects to the
+    # upgrade screen forever, since nothing ever actually ran the
+    # upgrade (confirmed in production: logs showed exactly one "no
+    # upgrade needed" at boot followed by "Upgrade needed" on every
+    # single request after it). Retry the read a few times before
+    # accepting "empty" as the real answer - a few hundred ms of extra
+    # boot time on every normal restart is a small price for not getting
+    # silently stuck like this again.
+    tries=0
+    upgradeKey=""
+    while [ "$tries" -lt 5 ]; do
+        upgradeKey=$(sed -n 's:.*<upgradeKey>\(.*\)</upgradeKey>.*:\1:p' "${APP_ROOT}/app/config/config.xml")
+        [ -n "$upgradeKey" ] && break
+        tries=$((tries + 1))
+        sleep 0.3
+    done
 
     if [ -n "$upgradeKey" ]; then
         echo "Auto-migrate: upgrade needed, applying..."
