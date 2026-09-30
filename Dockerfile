@@ -42,6 +42,7 @@ RUN sed -i \
         zip \
         ldap \
         curl \
+        sockets \
     && a2enmod rewrite ssl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 

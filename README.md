@@ -74,6 +74,20 @@ PHP web based Password Manager for business and personal use.
   generous 24h in `docker/php-session.ini` so PHP's GC is never the
   actual limiting factor - the app's own configured timeout is what
   decides now, as intended.
+- Fixed the automatic DB schema upgrade (see above) silently not running
+  at all in some boots: it writes its confirmation key into `config.xml`
+  and immediately reads it back to apply the upgrade, but that read
+  could catch the write before it was visible on disk yet (bind-mounted
+  volume) and conclude nothing was pending - the upgrade then never ran,
+  and every real request kept redirecting to the upgrade-confirmation
+  screen forever, since nothing had actually applied it. The read now
+  retries briefly before giving up.
+- Added the PHP `sockets` extension to the image. Without it, turning on
+  "Remote syslog" (Configuration > General) crashed the whole app with
+  `Call to undefined function Monolog\Handler\SyslogUdp\socket_create()`
+  - that option sends log events over UDP, which needs this extension.
+  Local syslog (the other checkbox, no server/port) never needed it and
+  was unaffected.
 
 ## Running with Docker
 
