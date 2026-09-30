@@ -141,6 +141,36 @@ auto_migrate() {
     fi
 }
 
+# SYSPASS_SESSION_TIMEOUT provisions the "Session timeout" (Configuration
+# > General) the same way SYSPASS_PASSWORD_SALT etc. provision their own
+# fields - but unlike those, this one is enforced on EVERY boot, not just
+# when config.xml is first created. Configuration > General's own save
+# still works day-to-day; this exists for when it needs to be pinned
+# from outside the UI (declarative deploys), and as a safety net - a
+# still-unexplained boot once reset this value to a default despite
+# having been saved through the UI (see README.md), and re-applying the
+# env var on every restart means that can't silently stick even if it
+# happens again.
+enforce_session_timeout() {
+    [ -n "${SYSPASS_SESSION_TIMEOUT:-}" ] || return 0
+
+    configFile="${APP_ROOT}/app/config/config.xml"
+    [ -f "$configFile" ] || return 0
+
+    current=$(sed -n 's:.*<sessionTimeout>\(.*\)</sessionTimeout>.*:\1:p' "$configFile")
+
+    if [ "$current" != "${SYSPASS_SESSION_TIMEOUT}" ]; then
+        echo "Enforcing SYSPASS_SESSION_TIMEOUT=${SYSPASS_SESSION_TIMEOUT} (config.xml had ${current:-<none>})"
+        sed -i "s:<sessionTimeout>.*</sessionTimeout>:<sessionTimeout>${SYSPASS_SESSION_TIMEOUT}</sessionTimeout>:" "$configFile"
+        # Config::loadConfig() prefers this cache over re-reading
+        # config.xml when it isn't older than the XML's own mtime - the
+        # sed above just updated that mtime, so this is only a safety
+        # net for the case where both happen within the same filesystem
+        # timestamp tick.
+        rm -f "${APP_ROOT}/app/cache/config.cache"
+    fi
+}
+
 if needs_boot_maintenance; then
     if start_private_apache; then
         fix_view_security
@@ -152,5 +182,7 @@ if needs_boot_maintenance; then
         stop_private_apache
     fi
 fi
+
+enforce_session_timeout
 
 exec "$@"

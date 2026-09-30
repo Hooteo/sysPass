@@ -88,6 +88,10 @@ PHP web based Password Manager for business and personal use.
   - that option sends log events over UDP, which needs this extension.
   Local syslog (the other checkbox, no server/port) never needed it and
   was unaffected.
+- Added `SYSPASS_SESSION_TIMEOUT`, read on every container start (not
+  just the first) to pin "Session timeout" (Configuration > General)
+  declaratively and guard against it drifting away from what was saved
+  through the UI - see "About `SYSPASS_SESSION_TIMEOUT`" below.
 
 ## Running with Docker
 
@@ -104,9 +108,10 @@ for the default service layout (app + MariaDB, `app/config` and
 
 `.env.example` has the full explanation inline for each variable; this is
 the short version of which ones matter for which scenario. All of them
-except `SYSPASS_AUTO_MIGRATE` are read **only the first time** the app
-finds an empty `app/config` volume (no `config.xml` yet) - editing `.env`
-later and restarting does nothing to an already-installed instance.
+except `SYSPASS_AUTO_MIGRATE` and `SYSPASS_SESSION_TIMEOUT` are read
+**only the first time** the app finds an empty `app/config` volume (no
+`config.xml` yet) - editing `.env` later and restarting does nothing to
+an already-installed instance.
 
 `SYSPASS_DB_NAME`/`USER`/`PASS` are pick-your-own values in **both**
 scenarios below, including migration - they do not need to match
@@ -129,6 +134,7 @@ the wizard doesn't need it.
 | `SYSPASS_DB_NAME/USER/PASS` | Anything you like - see note above. Not actually used by the install wizard itself (below), only the grant matters here |
 | `SYSPASS_DB_VERSION` / `SYSPASS_APP_VERSION` | **Leave both empty.** This is what makes the install wizard run |
 | `SYSPASS_AUTO_MIGRATE` | Leave as `yes` (default) - nothing to migrate yet, but no reason to turn it off |
+| `SYSPASS_SESSION_TIMEOUT` | Leave empty (see below) |
 | `SYSPASS_APPLICATION_URL` | Leave empty (see below) |
 
 After `docker compose up -d`, open the site and go through the install
@@ -151,12 +157,26 @@ finds one already there, even an empty one.
 | `SYSPASS_DB_NAME` / `USER` / `PASS` | Anything you like - see note above. Written straight into the new `config.xml` |
 | `SYSPASS_DB_VERSION` / `SYSPASS_APP_VERSION` | The **old** instance's exact `<databaseVersion>`/`<appVersion>` - this is what tells sysPass there's already a populated database, skipping the install wizard |
 | `SYSPASS_AUTO_MIGRATE` | Leave as `yes` (default) - this is what brings the imported, older-schema database up to date (OTP/MFA tables etc.) automatically on first boot |
+| `SYSPASS_SESSION_TIMEOUT` | Leave empty unless you have a specific reason not to (see below) |
 | `SYSPASS_APPLICATION_URL` | Leave empty unless you have a specific reason not to (see below) |
 
 Only `SYSPASS_PASSWORD_SALT`, `SYSPASS_DB_VERSION` and
 `SYSPASS_APP_VERSION` actually need to come from the old instance's
 `app/config/config.xml` - see `MIGRATION.md` for the exact
 `grep`/restore commands.
+
+### About `SYSPASS_SESSION_TIMEOUT`
+
+Leave this empty and manage the "Session timeout" from Configuration >
+General as normal - most installs never need this variable. It exists
+for two cases: pinning that value declaratively across redeploys instead
+of relying on it being saved through the UI, and as a safety net if it
+ever gets reset unexpectedly (this has happened once, cause still
+unconfirmed - see "Changes in this fork" above). When set, the
+entrypoint re-applies it to `config.xml` on **every** container start,
+overwriting whatever is currently there if it differs - including a
+value you changed through the UI since the last restart. Don't set it if
+you want Configuration > General to be the actual source of truth.
 
 ### About `SYSPASS_APPLICATION_URL`
 

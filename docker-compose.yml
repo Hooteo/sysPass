@@ -36,6 +36,7 @@ services:
       - SYSPASS_DB_VERSION=${SYSPASS_DB_VERSION}
       - SYSPASS_APP_VERSION=${SYSPASS_APP_VERSION}
       - SYSPASS_AUTO_MIGRATE=${SYSPASS_AUTO_MIGRATE:-yes}
+      - SYSPASS_SESSION_TIMEOUT=${SYSPASS_SESSION_TIMEOUT}
       - SYSPASS_APPLICATION_URL=${SYSPASS_APPLICATION_URL}
   syspass-db:
     # Same value as the service name above on purpose - see the

@@ -209,6 +209,17 @@ final class Config
         if ($applicationUrl !== false && $applicationUrl !== '') {
             $configData->setApplicationUrl($applicationUrl);
         }
+
+        // Only applied here, at first-boot config.xml creation - an
+        // existing instance's value (set from Configuration > General,
+        // or by a previous boot's entrypoint.sh enforcement - see
+        // README.md) is left alone by this method entirely, same as
+        // every other field above.
+        $sessionTimeout = getenv('SYSPASS_SESSION_TIMEOUT');
+
+        if ($sessionTimeout !== false && $sessionTimeout !== '') {
+            $configData->setSessionTimeout((int)$sessionTimeout);
+        }
     }
 
     /**
