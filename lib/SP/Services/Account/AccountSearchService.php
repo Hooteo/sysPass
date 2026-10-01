@@ -29,6 +29,7 @@ use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use SP\Config\ConfigData;
 use SP\Core\Acl\Acl;
+use SP\Core\Acl\ActionsInterface;
 use SP\Core\Exceptions\ConstraintException;
 use SP\Core\Exceptions\QueryException;
 use SP\Core\Exceptions\SPException;
@@ -62,7 +63,7 @@ final class AccountSearchService extends Service
     const FILTERS = [
         'condition' => [
             'subject' => ['is', 'not'],
-            'condition' => ['expired', 'private']
+            'condition' => ['expired', 'private', 'otp']
         ],
         'items' => [
             'subject' => ['id', 'user', 'group', 'file', 'owner', 'maingroup', 'client', 'category', 'name_regex'],
@@ -386,6 +387,33 @@ final class AccountSearchService extends Service
                 case 'not:private':
                     $queryCondition->addFilter(
                         '(Account.isPrivate = 0 OR Account.isPrivate IS NULL) AND (Account.isPrivateGroup = 0 OR Account.isPrivateGroup IS NULL)');
+                    break;
+                case 'is:otp':
+                    // Whether this account has its OTP/TOTP custom field
+                    // filled in - same existence/non-empty check already
+                    // used by AccountOtpHelper::getSecretForAccount(),
+                    // no decryption needed. The field's definition id
+                    // isn't a fixed value (autoincrement), so this joins
+                    // through CustomFieldType.name='otp' rather than
+                    // assuming one.
+                    $queryCondition->addFilter(
+                        'EXISTS (SELECT 1 FROM CustomFieldData CFD
+                                 INNER JOIN CustomFieldDefinition CFDef ON CFDef.id = CFD.definitionId
+                                 INNER JOIN CustomFieldType CFT ON CFT.id = CFDef.typeId
+                                 WHERE CFD.moduleId = ? AND CFD.itemId = Account.id
+                                   AND CFT.name = ? AND CFD.data IS NOT NULL AND CFD.data <> \'\'
+                                   AND CFD.`key` IS NOT NULL AND CFD.`key` <> \'\')',
+                        [ActionsInterface::ACCOUNT, 'otp']);
+                    break;
+                case 'not:otp':
+                    $queryCondition->addFilter(
+                        'NOT EXISTS (SELECT 1 FROM CustomFieldData CFD
+                                     INNER JOIN CustomFieldDefinition CFDef ON CFDef.id = CFD.definitionId
+                                     INNER JOIN CustomFieldType CFT ON CFT.id = CFDef.typeId
+                                     WHERE CFD.moduleId = ? AND CFD.itemId = Account.id
+                                       AND CFT.name = ? AND CFD.data IS NOT NULL AND CFD.data <> \'\'
+                                       AND CFD.`key` IS NOT NULL AND CFD.`key` <> \'\')',
+                        [ActionsInterface::ACCOUNT, 'otp']);
                     break;
             }
         }

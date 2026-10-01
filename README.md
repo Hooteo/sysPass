@@ -92,6 +92,12 @@ PHP web based Password Manager for business and personal use.
   just the first) to pin "Session timeout" (Configuration > General)
   declaratively and guard against it drifting away from what was saved
   through the UI - see "About `SYSPASS_SESSION_TIMEOUT`" below.
+- Added `is:otp` / `not:otp` to the account search box's special filter
+  syntax (alongside the existing, undocumented-in-the-UI `is:expired` /
+  `is:private`) - type `is:otp` into the search box to show only
+  accounts that have their OTP/TOTP custom field filled in, or
+  `not:otp` for the opposite. No decryption involved, just whether that
+  field has a value for the account. See `lib/SP/Services/Account/AccountSearchService.php`.
 
 ## Running with Docker
 
