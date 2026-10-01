@@ -57,6 +57,14 @@ $pager = $data->getPager();
                             value="<?php echo $category->getId(); ?>" <?php echo $category->isSelected() ? 'selected' : ''; ?>><?php echo htmlspecialchars($category->getName(), ENT_QUOTES); ?></option>
                 <?php endforeach; ?>
             </select>
+
+            <?php $searchOtp = $_getvar('searchOtp'); ?>
+            <select id="searchotp" name="searchotp"
+                    class="select-box select-box-deselect" tabindex="4">
+                <option value=""><?php echo __('OTP: All'); ?></option>
+                <option value="1" <?php echo $searchOtp === true ? 'selected' : ''; ?>><?php echo __('OTP: With'); ?></option>
+                <option value="0" <?php echo $searchOtp === false ? 'selected' : ''; ?>><?php echo __('OTP: Without'); ?></option>
+            </select>
         </div>
 
         <div class="search-filters">

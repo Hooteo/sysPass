@@ -134,6 +134,7 @@ final class AccountSearchHelper extends HelperBase
             || $this->accountSearchFilter->getTagsId()
             || $this->accountSearchFilter->getTxtSearch()
             || $this->accountSearchFilter->isSearchFavorites()
+            || $this->accountSearchFilter->getWithOtp() !== null
             || $this->accountSearchFilter->isSortViews());
 
         $userPreferences = $this->context->getUserData()->getPreferences();
@@ -318,6 +319,7 @@ final class AccountSearchHelper extends HelperBase
         $this->view->assign('searchTxt', $this->accountSearchFilter->getTxtSearch());
         $this->view->assign('searchGlobal', $this->accountSearchFilter->getGlobalSearch());
         $this->view->assign('searchFavorites', $this->accountSearchFilter->isSearchFavorites());
+        $this->view->assign('searchOtp', $this->accountSearchFilter->getWithOtp());
 
         $this->view->assign('searchRoute', Acl::getActionRoute(ActionsInterface::ACCOUNT_SEARCH));
         $this->view->assign('favoriteRouteOn', Acl::getActionRoute(ActionsInterface::ACCOUNT_FAVORITE_ADD));
@@ -354,6 +356,10 @@ final class AccountSearchHelper extends HelperBase
         $accountSearchFilter->setCategoryId($this->request->analyzeInt('category', 0));
         $accountSearchFilter->setTagsId($this->request->analyzeArray('tags'));
         $accountSearchFilter->setSearchFavorites($this->request->analyzeBool('searchfav', false));
+
+        $searchOtp = $this->request->analyzeString('searchotp', '');
+        $accountSearchFilter->setWithOtp($searchOtp === '' ? null : $searchOtp === '1');
+
         $accountSearchFilter->setTxtSearch($this->request->analyzeString('search'));
         $accountSearchFilter->setSortViews($userPreferences->isSortViews());
 

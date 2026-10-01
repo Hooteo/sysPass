@@ -99,6 +99,11 @@ final class AccountSearchFilter
      */
     private $searchFavorites = false;
     /**
+     * @var bool|null true = only accounts with OTP configured, false =
+     * only accounts without it, null = no filtering by this
+     */
+    private $withOtp;
+    /**
      * @var QueryCondition
      */
     private $stringFilters;
@@ -123,6 +128,26 @@ final class AccountSearchFilter
     public function setSearchFavorites($searchFavorites)
     {
         $this->searchFavorites = (bool)$searchFavorites;
+
+        return $this;
+    }
+
+    /**
+     * @return bool|null
+     */
+    public function getWithOtp()
+    {
+        return $this->withOtp;
+    }
+
+    /**
+     * @param bool|null $withOtp
+     *
+     * @return $this
+     */
+    public function setWithOtp($withOtp)
+    {
+        $this->withOtp = $withOtp === null ? null : (bool)$withOtp;
 
         return $this;
     }
@@ -439,6 +464,7 @@ final class AccountSearchFilter
         $this->limitCount = null;
         $this->sortViews = null;
         $this->searchFavorites = false;
+        $this->withOtp = null;
         $this->sortOrder = self::SORT_DEFAULT;
         $this->sortKey = self::SORT_DIR_ASC;
     }

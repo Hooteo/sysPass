@@ -98,6 +98,13 @@ PHP web based Password Manager for business and personal use.
   accounts that have their OTP/TOTP custom field filled in, or
   `not:otp` for the opposite. No decryption involved, just whether that
   field has a value for the account. See `lib/SP/Services/Account/AccountSearchService.php`.
+- Added a proper "OTP: All / With / Without" dropdown next to the
+  Client/Category selectors on the account search box, combinable with
+  them and with tags - the `is:otp`/`not:otp` text syntax above still
+  works too, but doesn't combine well with other free text in the same
+  search box (a pre-existing limitation shared by `is:expired`/`is:private`,
+  not specific to this filter), so the dropdown is the better choice
+  whenever other filters are also in use.
 
 ## Running with Docker
 

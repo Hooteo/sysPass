@@ -25,6 +25,7 @@
 namespace SP\Repositories\Account;
 
 use RuntimeException;
+use SP\Core\Acl\ActionsInterface;
 use SP\Core\Exceptions\ConstraintException;
 use SP\Core\Exceptions\QueryException;
 use SP\Core\Exceptions\SPException;
@@ -680,6 +681,28 @@ final class AccountRepository extends Repository implements RepositoryItemInterf
             $queryJoins->addJoin(
                 'INNER JOIN AccountToFavorite ON (AccountToFavorite.accountId = Account.id AND AccountToFavorite.userId = ?)',
                 [$this->context->getUserData()->getId()]
+            );
+        }
+
+        if ($accountSearchFilter->getWithOtp() !== null) {
+            // Whether this account has its OTP/TOTP custom field filled
+            // in - same existence/non-empty check AccountOtpHelper
+            // already uses, no decryption needed. The field's
+            // definition id isn't a fixed value (autoincrement), so
+            // this joins through CustomFieldType.name='otp' rather than
+            // assuming one.
+            $existsClause = 'EXISTS (SELECT 1 FROM CustomFieldData CFD
+                INNER JOIN CustomFieldDefinition CFDef ON CFDef.id = CFD.definitionId
+                INNER JOIN CustomFieldType CFT ON CFT.id = CFDef.typeId
+                WHERE CFD.moduleId = ? AND CFD.itemId = Account.id
+                  AND CFT.name = ? AND CFD.data IS NOT NULL AND CFD.data <> \'\'
+                  AND CFD.`key` IS NOT NULL AND CFD.`key` <> \'\')';
+
+            $queryFilters->addFilter(
+                $accountSearchFilter->getWithOtp() === true
+                    ? $existsClause
+                    : 'NOT ' . $existsClause,
+                [ActionsInterface::ACCOUNT, 'otp']
             );
         }
 
