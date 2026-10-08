@@ -115,7 +115,8 @@ PHP web based Password Manager for business and personal use.
   another password manager (eg. Vaultwarden/Bitwarden's JSON export has
   the secret at `items[].login.totp` - reshape it into this CSV first,
   stripping any `otpauth://` URI down to just its `secret=` value if
-  that's what's there instead of a bare Base32 secret). See
+  that's what's there instead of a bare Base32 secret). A ready-to-edit
+  template is at `scripts/csv-import-template/`. See
   `lib/SP/Services/Import/CsvImportBase.php`.
 
 ## Running with Docker
