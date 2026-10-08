@@ -26,15 +26,20 @@ namespace SP\Services\Import;
 
 use Exception;
 use Psr\Container\ContainerInterface;
+use SP\Core\Acl\ActionsInterface;
 use SP\Core\Events\Event;
 use SP\Core\Events\EventDispatcher;
 use SP\Core\Events\EventMessage;
 use SP\DataModel\CategoryData;
 use SP\DataModel\ClientData;
+use SP\DataModel\CustomFieldData;
 use SP\Services\Account\AccountRequest;
 use SP\Services\Account\AccountService;
 use SP\Services\Category\CategoryService;
 use SP\Services\Client\ClientService;
+use SP\Services\CustomField\CustomFieldDefService;
+use SP\Services\CustomField\CustomFieldService;
+use SP\Services\CustomField\CustomFieldTypeService;
 use SP\Services\Tag\TagService;
 use SP\Storage\File\FileException;
 
@@ -73,6 +78,16 @@ abstract class CsvImportBase
      * @var array
      */
     protected $clients = [];
+    /**
+     * @var CustomFieldService
+     */
+    protected $customFieldService;
+    /**
+     * @var int|null The OTP custom field's definition id for accounts,
+     * resolved once in the constructor - null if this instance has no
+     * such field defined (fork removed, or a stock sysPass without it).
+     */
+    protected $otpFieldDefinitionId;
 
     /**
      * ImportBase constructor.
@@ -92,6 +107,44 @@ abstract class CsvImportBase
         $this->clientService = $dic->get(ClientService::class);
         $this->tagService = $dic->get(TagService::class);
         $this->eventDispatcher = $dic->get(EventDispatcher::class);
+        $this->customFieldService = $dic->get(CustomFieldService::class);
+        $this->otpFieldDefinitionId = $this->findOtpFieldDefinitionId($dic);
+    }
+
+    /**
+     * Resolves the account OTP custom field's definition id by joining
+     * through CustomFieldType.name = 'otp' - the same way
+     * AccountOtpHelper identifies it - rather than assuming a fixed id,
+     * since CustomFieldDefinition rows are autoincrement.
+     *
+     * @param ContainerInterface $dic
+     *
+     * @return int|null
+     */
+    private function findOtpFieldDefinitionId(ContainerInterface $dic)
+    {
+        $otpType = null;
+
+        foreach ($dic->get(CustomFieldTypeService::class)->getAll() as $type) {
+            if ($type->getName() === 'otp') {
+                $otpType = $type;
+                break;
+            }
+        }
+
+        if ($otpType === null) {
+            return null;
+        }
+
+        foreach ($dic->get(CustomFieldDefService::class)->getAllBasic() as $definition) {
+            if ($definition->getModuleId() === ActionsInterface::ACCOUNT
+                && $definition->getTypeId() === $otpType->getId()
+            ) {
+                return $definition->getId();
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -126,8 +179,12 @@ abstract class CsvImportBase
             $line++;
             $numfields = count($fields);
 
-            // Comprobar el número de campos de la línea
-            if ($numfields !== $this->numFields) {
+            // Fork note: an 8th, optional column carries the account's
+            // OTP/TOTP secret (set on the custom field also used by the
+            // "is:otp"/"not:otp" search filters and the OTP dropdown -
+            // see README.md) - a plain 7-field line still works exactly
+            // as before.
+            if ($numfields !== $this->numFields && $numfields !== $this->numFields + 1) {
                 throw new ImportException(
                     sprintf(__('Wrong number of fields (%d)'), $numfields),
                     ImportException::ERROR,
@@ -137,6 +194,7 @@ abstract class CsvImportBase
 
             // Asignar los valores del array a variables
             list($accountName, $clientName, $categoryName, $url, $login, $password, $notes) = $fields;
+            $otp = isset($fields[7]) ? trim($fields[7]) : '';
 
             try {
                 if (empty($clientName) || empty($categoryName)) {
@@ -157,7 +215,25 @@ abstract class CsvImportBase
                 $accountRequest->url = $url;
                 $accountRequest->pass = $password;
 
-                $this->addAccount($accountRequest);
+                $accountId = $this->addAccount($accountRequest);
+
+                if ($otp !== '') {
+                    if ($this->otpFieldDefinitionId === null) {
+                        $this->eventDispatcher->notifyEvent('run.import.csv.process.account',
+                            new Event($this, EventMessage::factory()
+                                ->addDescription(__u('OTP column set but no OTP custom field is defined - skipped'))
+                                ->addDetail(__u('Account'), $accountName))
+                        );
+                    } else {
+                        $customFieldData = new CustomFieldData();
+                        $customFieldData->setItemId($accountId);
+                        $customFieldData->setModuleId(ActionsInterface::ACCOUNT);
+                        $customFieldData->setDefinitionId($this->otpFieldDefinitionId);
+                        $customFieldData->setData($otp);
+
+                        $this->customFieldService->create($customFieldData);
+                    }
+                }
 
                 $this->eventDispatcher->notifyEvent('run.import.csv.process.account',
                     new Event($this, EventMessage::factory()

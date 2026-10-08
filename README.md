@@ -105,6 +105,18 @@ PHP web based Password Manager for business and personal use.
   search box (a pre-existing limitation shared by `is:expired`/`is:private`,
   not specific to this filter), so the dropdown is the better choice
   whenever other filters are also in use.
+- Added an optional 8th column to the CSV account import (Configuration
+  > Import), carrying the account's OTP/TOTP secret into the same
+  custom field used by the search filters/dropdown above - a plain
+  7-column CSV still imports exactly as before. Columns, in order:
+  `accountName;clientName;categoryName;url;login;password;notes;otp`
+  (the usual CSV delimiter field on that screen applies to this column
+  too). Useful for migrating accounts with 2FA already configured from
+  another password manager (eg. Vaultwarden/Bitwarden's JSON export has
+  the secret at `items[].login.totp` - reshape it into this CSV first,
+  stripping any `otpauth://` URI down to just its `secret=` value if
+  that's what's there instead of a bare Base32 secret). See
+  `lib/SP/Services/Import/CsvImportBase.php`.
 
 ## Running with Docker
 

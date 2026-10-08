@@ -98,6 +98,7 @@ trait ImportTrait
      *
      * @param AccountRequest $accountRequest
      *
+     * @return int The newly created account's id
      * @throws ImportException
      * @throws SPException
      * @throws CryptoException
@@ -129,9 +130,11 @@ trait ImportTrait
             $accountRequest->key = '';
         }
 
-        $this->accountService->create($accountRequest);
+        $accountId = $this->accountService->create($accountRequest);
 
         $this->counter++;
+
+        return $accountId;
     }
 
     /**
